@@ -1,0 +1,129 @@
+/**
+ * FlowErs - Pregnancy Companion MVP Frontend
+ * Main Application Shell & View Orchestration
+ */
+
+import React from 'react';
+import { AppProvider, useApp } from './context/AppContext';
+import { Navbar } from './components/Navbar';
+import { BottomNav } from './components/BottomNav';
+import { HomeScreen } from './screens/HomeScreen';
+import { JourneyScreen } from './screens/JourneyScreen';
+import { ResourcesScreen } from './screens/ResourcesScreen';
+import { ProfileScreen } from './screens/ProfileScreen';
+import { LandingScreen } from './screens/LandingScreen';
+import { AuthModal } from './components/AuthModal';
+import { OnboardingModal } from './components/OnboardingModal';
+import { ResourceModal } from './components/ResourceModal';
+import { TopicModal } from './components/TopicModal';
+import { ContentEntryModal } from './components/ContentEntryModal';
+import { AnalyticsDashboardModal } from './components/AnalyticsDashboardModal';
+
+const AppContent: React.FC = () => {
+  const {
+    isAuthenticated,
+    activeTab,
+    selectedResource,
+    setSelectedResource,
+    selectedTopic,
+    setSelectedTopic,
+    isContentEntryOpen,
+    setIsContentEntryOpen,
+    editingResource,
+    toastMessage,
+  } = useApp();
+
+  // Screen selection
+  const renderCurrentScreen = () => {
+    // If not authenticated and activeTab is 'home', show LandingScreen with easy access to Demo Mama & Sign In
+    if (!isAuthenticated && activeTab === 'home') {
+      return <LandingScreen />;
+    }
+
+    switch (activeTab) {
+      case 'home':
+        return <HomeScreen />;
+      case 'journey':
+        return <JourneyScreen />;
+      case 'explore':
+        return <ResourcesScreen />;
+      case 'profile':
+        return <ProfileScreen />;
+      default:
+        return <HomeScreen />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-[#FAF9F5] text-[#233125]">
+      {/* Top Navigation Bar */}
+      <Navbar />
+
+      {/* Floating Toast Notification for Feedback & Simulating Reminders */}
+      {toastMessage && (
+        <aside
+          aria-label="Notification alert"
+          className="fixed top-18 left-1/2 -translate-x-1/2 z-50 max-w-sm sm:max-w-md w-[92%] px-4 py-3 rounded-2xl bg-[#233125] text-white text-xs sm:text-sm font-medium shadow-xl border border-[#88A04D]/40 flex items-center justify-between gap-3 animate-fade-in"
+        >
+          <div className="flex items-center gap-2">
+            <span>🌸</span>
+            <span>{toastMessage}</span>
+          </div>
+        </aside>
+      )}
+
+      {/* Centered Desktop Content Container (~1120px max-width) */}
+      <main className="flex-1 w-full max-w-[1140px] mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-20 md:pb-12">
+        {renderCurrentScreen()}
+      </main>
+
+      {/* Desktop Quiet Footer */}
+      <footer className="hidden md:block py-6 border-t border-[#E5EADF] text-xs text-[#5F6E60] bg-[#FAF9F5]">
+        <div className="max-w-[1140px] mx-auto px-6 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="font-serif font-bold text-[#233125]">ម៉ែ</span>
+            <span className="text-[#5F6E60]">by FlowErs</span>
+            <span>·</span>
+            <span>នៅក្បែរម៉ាក់ៗ សម្រាប់ការមានពពោះលើកដំបូង</span>
+          </div>
+          <div className="text-[11px] text-[#5F6E60]/80">
+            ចំណេះដឹងអំពីការមានផ្ទៃពោះ ពីប្រភពដែលអាចទុកចិត្តបាន (NMCHC), WHO, UNICEF & RHAC។ ព័ត៌មានសម្រាប់ជួយឲ្យម៉ាក់យល់ដឹង និងត្រៀមខ្លួន មិនមែនជាការធ្វើរោគវិនិច្ឆ័យឡើយ។
+          </div>
+        </div>
+      </footer>
+
+      {/* Mobile Fixed Bottom Navigation */}
+      <BottomNav />
+
+      {/* Global Interactive Modals */}
+      <AuthModal />
+      <OnboardingModal />
+      {selectedResource && (
+        <ResourceModal
+          resource={selectedResource}
+          onClose={() => setSelectedResource(null)}
+        />
+      )}
+      {selectedTopic && (
+        <TopicModal
+          topic={selectedTopic}
+          onClose={() => setSelectedTopic(null)}
+        />
+      )}
+      <ContentEntryModal
+        isOpen={isContentEntryOpen}
+        onClose={() => setIsContentEntryOpen(false)}
+        resourceToEdit={editingResource}
+      />
+      <AnalyticsDashboardModal />
+    </div>
+  );
+};
+
+export default function App() {
+  return (
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
+  );
+}
