@@ -13,8 +13,9 @@
  */
 
 import React, { useEffect } from 'react';
-import { ChevronRight, Heart } from 'lucide-react';
+import { ChevronRight, Heart, CalendarCheck, Check } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { usePlan } from '../context/PlanContext';
 import { FlowerVisual } from '../components/FlowerVisual';
 import { FruitSize } from '../components/FruitSize';
 import { AudioPlayer } from '../components/AudioPlayer';
@@ -23,6 +24,8 @@ import { LittleReminder } from '../components/LittleReminder';
 
 export const HomeScreen: React.FC = () => {
   const { user, currentWeek, currentMonth, monthlyMessage, focusTopics, setActiveTab, logEvent, t } = useApp();
+  const { getDueToday, toggleDone } = usePlan();
+  const dueToday = getDueToday();
 
   useEffect(() => {
     logEvent('monthly_message_played', monthlyMessage.id, currentWeek, { action: 'home_view' });
@@ -89,6 +92,46 @@ export const HomeScreen: React.FC = () => {
           </button>
         </div>
       </section>
+
+      {/* Today's reminders strip */}
+      {dueToday.length > 0 && (
+        <section className="p-4 sm:p-5 rounded-3xl bg-white border border-[#88A04D]/35 shadow-2xs space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-full bg-[#EBF1E4] text-[#88A04D] flex items-center justify-center shrink-0">
+                <CalendarCheck className="w-3.5 h-3.5" />
+              </span>
+              <h3 className="text-xs sm:text-sm font-bold text-[#233125]">
+                {t('ការរំលឹកសម្រាប់ថ្ងៃនេះ', "Today's Reminders")} ({dueToday.length})
+              </h3>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('plan')}
+              className="text-xs font-semibold text-[#88A04D] hover:text-[#5C7034] inline-flex items-center gap-1 transition-colors"
+            >
+              <span>{t('មើលគម្រោងទាំងអស់', 'View My Plan')}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="space-y-1.5">
+            {dueToday.slice(0, 3).map((item) => (
+              <div
+                key={item.id}
+                onClick={() => toggleDone(item.id)}
+                className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#FAF9F5] border border-[#E5EADF] text-xs text-[#233125] cursor-pointer hover:bg-white transition-colors"
+              >
+                <span className="w-4 h-4 rounded-md border border-[#CAD6BE] bg-white flex items-center justify-center shrink-0">
+                  {item.done && <Check className="w-3 h-3 text-[#88A04D]" />}
+                </span>
+                <span className="truncate">{t(item.text_kh, item.text_en)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 2. Monthly voice message */}
       <section>

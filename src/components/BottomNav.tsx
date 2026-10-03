@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { Home, Compass, Search, User } from 'lucide-react';
+import { Home, Compass, Search, User, CalendarCheck } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export const BottomNav: React.FC = () => {
@@ -13,7 +13,8 @@ export const BottomNav: React.FC = () => {
 
   const navItems = [
     { id: 'home' as const, labelKh: 'ទំព័រដើម', labelEn: 'Home', icon: Home },
-    { id: 'journey' as const, labelKh: 'ដំណើររបស់អ្នក', labelEn: 'Journey', icon: Compass },
+    { id: 'journey' as const, labelKh: 'ដំណើរ', labelEn: 'Journey', icon: Compass },
+    { id: 'plan' as const, labelKh: 'គម្រោង', labelEn: 'My Plan', icon: CalendarCheck },
     { id: 'explore' as const, labelKh: 'ស្វែងយល់', labelEn: 'Explore', icon: Search },
     { id: 'profile' as const, labelKh: 'គណនី', labelEn: 'Profile', icon: User },
   ];
@@ -24,7 +25,7 @@ export const BottomNav: React.FC = () => {
       role="navigation"
       aria-label="Bottom Navigation"
     >
-      <div className="grid grid-cols-4 h-15 max-w-md mx-auto px-1">
+      <div className="grid grid-cols-5 h-15 max-w-md mx-auto px-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;

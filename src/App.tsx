@@ -5,10 +5,12 @@
 
 import React from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import { PlanProvider } from './context/PlanContext';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { HomeScreen } from './screens/HomeScreen';
 import { JourneyScreen } from './screens/JourneyScreen';
+import { PlanScreen } from './screens/PlanScreen';
 import { ResourcesScreen } from './screens/ResourcesScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { LandingScreen } from './screens/LandingScreen';
@@ -46,6 +48,8 @@ const AppContent: React.FC = () => {
         return <HomeScreen />;
       case 'journey':
         return <JourneyScreen />;
+      case 'plan':
+        return <PlanScreen />;
       case 'explore':
         return <ResourcesScreen />;
       case 'profile':
@@ -127,7 +131,9 @@ const AppContent: React.FC = () => {
 export default function App() {
   return (
     <AppProvider>
-      <AppContent />
+      <PlanProvider>
+        <AppContent />
+      </PlanProvider>
     </AppProvider>
   );
 }

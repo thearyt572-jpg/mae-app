@@ -23,9 +23,12 @@ import {
   ChevronUp,
   Gauge,
   Radio,
+  CalendarCheck,
 } from 'lucide-react';
+import { PlanSuggestion } from '../types';
 import { useApp } from '../context/AppContext';
 import { FeedbackCard } from './FeedbackCard';
+import { AddToPlanSheet } from './AddToPlanSheet';
 
 interface AudioPlayerProps {
   title?: string;
@@ -35,6 +38,7 @@ interface AudioPlayerProps {
   audioUrl?: string;
   durationStr?: string;
   monthOrWeek: number;
+  planSuggestions?: PlanSuggestion[];
 }
 
 export const AudioPlayer: React.FC<AudioPlayerProps> = ({
@@ -45,6 +49,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   audioUrl = '/audio/month-1.mp3',
   durationStr = '2:15',
   monthOrWeek,
+  planSuggestions,
 }) => {
   const { logEvent, t, language } = useApp();
 
@@ -63,6 +68,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   // Expandable letter: Open by default as requested!
   const [isLetterOpen, setIsLetterOpen] = useState(true);
+  const [isPlanSheetOpen, setIsPlanSheetOpen] = useState(false);
 
   // Keep track of listening time for telemetry
   const listenedSecondsRef = useRef<number>(0);
@@ -71,6 +77,21 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const displayTitle = title || t('សារសំឡេងប្រចាំខែពីម៉ែ 🌸', 'Monthly Voice Message from Mom 🌸');
   const displaySubtitle = subtitle || t('«មានសារតូចមួយសម្រាប់អ្នកក្នុងខែនេះ»', '"A short message for you this month"');
   const displayLetter = letter || transcript;
+
+  const activePlanSuggestions = planSuggestions && planSuggestions.length > 0
+    ? planSuggestions
+    : [
+        {
+          id: `voice_plan_m${monthOrWeek}_1`,
+          text_kh: 'អ្នកអាចពិចារណាសម្រាកឱ្យបានគ្រប់គ្រាន់ និងពិសាទឹកស្អាតឱ្យបានច្រើន',
+          text_en: 'You may want to consider getting adequate rest and drinking plenty of clean water',
+        },
+        {
+          id: `voice_plan_m${monthOrWeek}_2`,
+          text_kh: 'អ្នកអាចពិចារណាធ្វើចិត្តឱ្យស្រស់ស្រាយ និងញ៉ាំអាហារក្តៅៗដែលងាយរំលាយ',
+          text_en: 'You may want to consider keeping a calm spirit and eating warm, gentle meals',
+        },
+      ];
 
   // Convert initial "2:15" string to seconds as fallback duration
   const fallbackDurationSeconds = (() => {
@@ -406,6 +427,17 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-red-500" /> : <Volume2 className="w-4 h-4" />}
           </button>
+
+          {/* Add to My Plan Button */}
+          <button
+            type="button"
+            onClick={() => setIsPlanSheetOpen(true)}
+            className="min-h-[44px] inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-[#88A04D]/35 bg-white hover:bg-[#F0F4E8] text-xs font-semibold text-[#5C7034] transition-colors shadow-2xs"
+            title={t('បញ្ចូលក្នុងគម្រោង', 'Add to My Plan')}
+          >
+            <CalendarCheck className="w-4 h-4 text-[#88A04D]" />
+            <span className="hidden sm:inline">{t('បញ្ចូលក្នុងគម្រោង', 'Add to Plan')}</span>
+          </button>
         </div>
 
         {/* Big Central Play / Pause Button */}
@@ -468,6 +500,16 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
       {/* Feature Feedback Card after listening to or stopping voice message */}
       {hasListened && <FeedbackCard feature="voice_message" />}
+
+      {/* Add To My Plan Bottom Sheet */}
+      <AddToPlanSheet
+        isOpen={isPlanSheetOpen}
+        onClose={() => setIsPlanSheetOpen(false)}
+        sourceType="voice_message"
+        sourceId={`mom_voice_m${monthOrWeek}`}
+        sourceTitle={displayTitle}
+        suggestions={activePlanSuggestions}
+      />
     </div>
   );
 };

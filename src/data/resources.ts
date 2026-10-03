@@ -56,6 +56,10 @@ export const INITIAL_PREGNANCY_RESOURCES: PregnancyResource[] = [
     summaryPurpose: 'ជួយឱ្យម្តាយដឹងច្បាស់ពីសារៈសំខាន់នៃការពិនិត្យផ្ទៃពោះដំបូង និងកាត់បន្ថយការភ័យខ្លាច។',
     weeklyFocus: 'កក់ការណាត់ជួបគ្រូពេទ្យលើកដំបូង និងរៀបចំសៀវភៅតាមដានសុខភាពមាតា។',
     status: 'Published',
+    planSuggestions: [
+      { id: 'anc_visit', text_kh: 'អ្នកអាចពិចារណាណាត់ជួបគ្រូពេទ្យ ឬឆ្មបដើម្បីពិនិត្យផ្ទៃពោះ', text_en: 'You may want to consider scheduling an antenatal checkup with a midwife or doctor' },
+      { id: 'yellow_book', text_kh: 'អ្នកអាចពិចារណាដាក់សៀវភៅតាមដានសុខភាពពណ៌លឿងក្នុងកាបូប', text_en: 'You may want to consider keeping your yellow maternal health book in your bag' },
+    ],
     title: 'ការពិនិត្យផ្ទៃពោះតាមកាលកំណត់ និងពិធីសារសុវត្ថិភាពមាតុភាព',
     summary: 'ការទៅពិនិត្យផ្ទៃពោះយ៉ាងតិច ៤ ដងនៅមណ្ឌលសុខភាព (ពិសេសលើកទីមួយមុន ១២ សប្ដាហ៍) ជួយឱ្យគ្រូពេទ្យពិនិត្យសុខភាពទារក វាស់សម្ពាធឈាម និងផ្តល់ថ្នាំជាតិដែក-ហ្វូលិកការពារភាពស្លេកស្លាំង។',
   },
@@ -75,6 +79,11 @@ export const INITIAL_PREGNANCY_RESOURCES: PregnancyResource[] = [
     summaryPurpose: 'ជួយឱ្យម្តាយជ្រើសរើសអាហារធម្មជាតិងាយរកក្នុងស្រុក ដោយមិនបាច់តមអាហារតាមជំនឿខុសឆ្គង។',
     weeklyFocus: 'បញ្ចូលបន្លែបៃតង ស៊ុត និងត្រីក្នុងអាហារប្រចាំថ្ងៃ និងញ៉ាំទឹកឱ្យបានគ្រប់គ្រាន់។',
     status: 'Published',
+    planSuggestions: [
+      { id: 'nutri_veg', text_kh: 'អ្នកអាចពិចារណាបន្ថែមបន្លែបៃតង និងផ្លែឈើស្រស់ក្នុងរបបអាហារ', text_en: 'You may want to consider adding green vegetables and fresh fruit to your meals' },
+      { id: 'nutri_water', text_kh: 'អ្នកអាចពិចារណាទទួលទានទឹកស្អាតឱ្យបានគ្រប់គ្រាន់ពេញមួយថ្ងៃ', text_en: 'You may want to consider staying well hydrated with clean water throughout the day' },
+      { id: 'nutri_iron', text_kh: 'អ្នកអាចពិចារណាលេបថ្នាំគ្រាប់ជាតិដែកក្រោយអាហារពេលល្ងាច', text_en: 'You may want to consider taking your iron supplement after dinner' },
+    ],
     title: 'អាហារូបត្ថម្ភ និងការហូបចុកត្រឹមត្រូវអំឡុងពេលពពោះ',
     summary: 'អំឡុងពេលពពោះ ម្តាយត្រូវញ៉ាំអាហារចម្រុះមុខ អាហារក្តៅៗ បន្លែបៃតង ផ្លែឈើស្រស់ ត្រី សាច់ ស៊ុត និងពិសាទឹកស្អាតឱ្យបានច្រើន ដើម្បីផ្តល់ជីវជាតិគ្រប់គ្រាន់ដល់ការលូតលាស់របស់ទារក។',
   },

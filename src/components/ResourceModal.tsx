@@ -5,10 +5,12 @@
  * simplified summary, and outbound source link.
  */
 
-import React from 'react';
-import { X, ExternalLink, Edit3, Check } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, ExternalLink, Edit3, Check, CalendarCheck } from 'lucide-react';
 import { PregnancyResource } from '../types';
 import { useApp } from '../context/AppContext';
+import { FeedbackCard } from './FeedbackCard';
+import { AddToPlanSheet } from './AddToPlanSheet';
 
 interface ResourceModalProps {
   resource: PregnancyResource;
@@ -28,6 +30,17 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({ resource, onClose 
   } = useApp();
 
   const isRead = isResourceRead(resource.id);
+  const [isPlanSheetOpen, setIsPlanSheetOpen] = useState(false);
+
+  const planSuggestions = resource.planSuggestions && resource.planSuggestions.length > 0
+    ? resource.planSuggestions
+    : [
+        {
+          id: `sug_${resource.id}_1`,
+          text_kh: `អ្នកអាចពិចារណាអនុវត្តតាមការណែនាំពីអត្ថបទ៖ ${resource.titleKh}`,
+          text_en: `You may want to consider applying the guidance from: ${resource.titleEn || resource.titleKh}`,
+        },
+      ];
 
   const handleOpenSource = () => {
     markResourceAsRead(resource.id);
@@ -149,11 +162,14 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({ resource, onClose 
               </div>
             </div>
           )}
+
+          {/* Feedback Card after reading */}
+          {isRead && <FeedbackCard feature="reading" />}
         </div>
 
         {/* Footer Actions - Safe area padded */}
         <div className="p-3 sm:p-5 bg-white border-t border-[#E5EADF] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <div className="flex items-center justify-between sm:justify-start gap-2">
+          <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2">
             <button
               type="button"
               onClick={handleToggleRead}
@@ -165,6 +181,16 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({ resource, onClose 
             >
               <Check className="w-4 h-4" />
               <span>{isRead ? t('បានអានរួច', 'Marked Read') : t('សម្គាល់ថាបានអាន', 'Mark as Read')}</span>
+            </button>
+
+            {/* Add to My Plan Button */}
+            <button
+              type="button"
+              onClick={() => setIsPlanSheetOpen(true)}
+              className="min-h-[44px] inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-full border border-[#88A04D]/40 bg-[#F0F4E8] text-[#5C7034] hover:bg-[#EBF1E4] transition-all"
+            >
+              <CalendarCheck className="w-4 h-4 text-[#88A04D]" />
+              <span>{t('បញ្ចូលក្នុងគម្រោង', 'Add to My Plan')}</span>
             </button>
 
             <button
@@ -189,6 +215,16 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({ resource, onClose 
           </a>
         </div>
       </div>
+
+      {/* Add To Plan Bottom Sheet */}
+      <AddToPlanSheet
+        isOpen={isPlanSheetOpen}
+        onClose={() => setIsPlanSheetOpen(false)}
+        sourceType="resource"
+        sourceId={resource.id}
+        sourceTitle={t(resource.titleKh, resource.titleEn)}
+        suggestions={planSuggestions}
+      />
     </div>
   );
 };

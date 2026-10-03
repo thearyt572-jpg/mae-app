@@ -48,7 +48,7 @@ const STORAGE_KEY_ANALYTICS = 'mae_analytics_events';
 const STORAGE_KEY_LANG = 'mae_user_lang';
 const STORAGE_KEY_CONSENT = 'mae_analytics_consent';
 
-export type TabKey = 'home' | 'journey' | 'explore' | 'profile' | 'resources';
+export type TabKey = 'home' | 'journey' | 'plan' | 'explore' | 'profile' | 'resources';
 
 /** 'unset' = the user has not answered the cookie/data banner yet (nothing is tracked). */
 export type ConsentStatus = 'unset' | 'granted' | 'denied';
@@ -103,8 +103,8 @@ interface AppContextType {
   resetReadProgress: () => void;
 
   // Modals & Navigation
-  activeTab: 'home' | 'journey' | 'explore' | 'profile';
-  setActiveTab: (tab: 'home' | 'journey' | 'explore' | 'profile' | 'resources') => void;
+  activeTab: TabKey;
+  setActiveTab: (tab: TabKey) => void;
   selectedResource: PregnancyResource | null;
   setSelectedResource: (res: PregnancyResource | null) => void;
   selectedTopic: FocusTopic | null;
@@ -160,6 +160,7 @@ const rowToResource = (row: any): PregnancyResource =>
     status: row.status,
     title: row.title_kh,
     summary: row.summary_kh,
+    planSuggestions: row.plan_suggestions ?? [],
     createdAt: row.created_at,
     updatedAt: row.created_at,
   }) as PregnancyResource;
@@ -243,7 +244,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // UI States
   const [currentWeek, setCurrentWeek] = useState<number>(() => user?.pregnancy_week || 9);
-  const [activeTab, setActiveTabState] = useState<'home' | 'journey' | 'explore' | 'profile'>('home');
+  const [activeTab, setActiveTabState] = useState<TabKey>('home');
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('signup');
@@ -254,7 +255,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const setActiveTab = (tab: 'home' | 'journey' | 'explore' | 'profile' | 'resources') => {
+  const setActiveTab = (tab: TabKey) => {
     const target = tab === 'resources' ? 'explore' : tab;
     setActiveTabState(target);
     if (target === 'journey') {

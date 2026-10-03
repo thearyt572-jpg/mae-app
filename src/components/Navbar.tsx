@@ -88,6 +88,18 @@ export const Navbar: React.FC = () => {
 
           <button
             type="button"
+            onClick={() => setActiveTab('plan')}
+            className={`transition-colors py-1 ${
+              activeTab === 'plan'
+                ? 'text-[#233125] font-semibold border-b-2 border-[#88A04D]'
+                : 'hover:text-[#233125]'
+            }`}
+          >
+            {t('គម្រោងរបស់ខ្ញុំ', 'My Plan')}
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('explore')}
             className={`transition-colors py-1 ${
               activeTab === 'explore'
