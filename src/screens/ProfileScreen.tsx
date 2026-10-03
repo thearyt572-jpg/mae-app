@@ -12,7 +12,7 @@
  */
 
 import React, { useState } from 'react';
-import { User, Bell, Globe, LogOut, Calendar, Heart } from 'lucide-react';
+import { User, Bell, Globe, LogOut, Calendar, Heart, Trash2, ShieldCheck, AlertTriangle, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { UserLanguage, NotificationPreference } from '../types';
 
@@ -26,11 +26,16 @@ export const ProfileScreen: React.FC = () => {
     setCurrentWeek,
     setIsAuthModalOpen,
     setAuthModalMode,
+    analyticsConsent,
+    setAnalyticsConsent,
+    deleteMyData,
     t,
   } = useApp();
 
   const [editName, setEditName] = useState(user?.name || '');
   const [isEditing, setIsEditing] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!isAuthenticated || !user) {
     return (
@@ -76,12 +81,22 @@ export const ProfileScreen: React.FC = () => {
     }
   };
 
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteMyData();
+      setIsDeleteModalOpen(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6 sm:space-y-8 pb-16 max-w-xl mx-auto">
       {/* Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#233125]">
-          {t('គណនីរបស់កូន', 'My Profile')}
+          {t('គណនីរបស់អ្នក', 'My Profile')}
         </h1>
         <p className="text-xs sm:text-sm text-[#5F6E60] mt-0.5">
           {t('ព័ត៌មានផ្ទាល់ខ្លួន និងការកំណត់ត្រាផ្សេងៗក្នុងកម្មវិធី «ម៉ែ»។', 'Manage your basic details and preferences.')}
@@ -254,17 +269,142 @@ export const ProfileScreen: React.FC = () => {
         </div>
       </section>
 
-      {/* 5. Logout Button */}
-      <div className="pt-2 text-center">
+      {/* 5. Privacy & Research Data Consent */}
+      <section className="rounded-3xl bg-white border border-[#E5EADF] p-5 sm:p-6 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#5C7034]">
+            <ShieldCheck className="w-4 h-4 text-[#88A04D]" />
+            <span>{t('ការស្រាវជ្រាវ និងភាពឯកជន', 'Research & Privacy')}</span>
+          </div>
+
+          <span
+            className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+              analyticsConsent === 'granted'
+                ? 'bg-[#EBF1E4] text-[#5C7034]'
+                : analyticsConsent === 'denied'
+                ? 'bg-amber-50 text-amber-700'
+                : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            {analyticsConsent === 'granted'
+              ? t('បានយល់ព្រម', 'Granted')
+              : analyticsConsent === 'denied'
+              ? t('មិនយល់ព្រម', 'Declined')
+              : t('មិនទាន់កំណត់', 'Unset')}
+          </span>
+        </div>
+
+        <p className="text-xs text-[#5F6E60] leading-relaxed">
+          {t(
+            'ទិន្នន័យស្រាវជ្រាវ (ទំព័រដែលបានមើល អត្ថបទដែលបានអាន រយៈពេលស្តាប់) ត្រូវប្រើសម្រាប់តែកែលម្អកម្មវិធីដោយក្រុមការងារ [TEAM NAME] ប៉ុណ្ណោះ។ អ្នកអាចប្តូរការយល់ព្រមបានគ្រប់ពេល។',
+            'Research activity logs are used solely by [TEAM NAME] to improve the companion. You can change your choice anytime.'
+          )}
+        </p>
+
+        <div className="flex items-center gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => setAnalyticsConsent(analyticsConsent === 'granted' ? 'denied' : 'granted')}
+            className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-semibold border transition-all ${
+              analyticsConsent === 'granted'
+                ? 'border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100'
+                : 'border-[#88A04D] text-[#5C7034] bg-[#EBF1E4] hover:bg-[#EBF1E4]/80'
+            }`}
+          >
+            {analyticsConsent === 'granted'
+              ? t('ដកការយល់ព្រម (Revoke Consent)', 'Revoke Consent')
+              : t('ផ្តល់ការយល់ព្រម (Grant Consent)', 'Grant Consent')}
+          </button>
+        </div>
+      </section>
+
+      {/* 6. Account Actions */}
+      <section className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
         <button
           type="button"
           onClick={logout}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-red-200 text-red-700 hover:bg-red-50 text-xs sm:text-sm font-medium transition-colors"
+          className="min-h-[44px] w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full border border-[#E5EADF] text-[#5F6E60] hover:text-[#233125] hover:bg-[#FAF9F5] text-xs sm:text-sm font-medium transition-colors"
         >
           <LogOut className="w-4 h-4" />
           <span>{t('ចាកចេញពីគណនី (Log Out)', 'Log Out')}</span>
         </button>
-      </div>
+
+        <button
+          type="button"
+          onClick={() => setIsDeleteModalOpen(true)}
+          className="min-h-[44px] w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full border border-red-200 text-red-700 hover:bg-red-50 text-xs sm:text-sm font-semibold transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+          <span>{t('លុបទិន្នន័យរបស់ខ្ញុំ (Delete My Data)', 'Delete My Data')}</span>
+        </button>
+      </section>
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-xs"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-[#FAF9F5] border-t sm:border border-[#E5EADF] shadow-2xl p-5 sm:p-6 space-y-4 animate-slide-up">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-red-100 border border-red-200 text-red-600 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <h3 className="text-base sm:text-lg font-bold font-serif text-[#233125]">
+                  {t('លុបទិន្នន័យរបស់អ្នក?', 'Delete Your Data?')}
+                </h3>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="p-2 text-[#5F6E60] hover:text-[#233125] rounded-full hover:bg-white"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs sm:text-sm text-[#5F6E60] leading-relaxed">
+              {t(
+                'តើអ្នកពិតជាចង់លុបទិន្នន័យទាំងអស់របស់អ្នកមែនទេ? សកម្មភាពនេះនឹងលុបប្រវត្តិអត្ថបទដែលបានអាន ប្រវត្តិស្រាវជ្រាវ និងព័ត៌មានគណនីរបស់អ្នកចេញពីប្រព័ន្ធភ្លាមៗ ហើយមិនអាចត្រឡប់វិញបានឡើយ។',
+                'Are you sure you want to permanently delete all your data? This will immediately remove your reading progress, research activity logs, and user profile. This action cannot be undone.'
+              )}
+            </p>
+
+            <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-[11px] text-red-800 leading-relaxed">
+              {t(
+                'ចំណាំ៖ គណនីចូលប្រព័ន្ធ (Auth login) នឹងត្រូវចាកចេញភ្លាមៗ។ ដើម្បីលុបគណនីចូលប្រព័ន្ធចេញជាស្ថាពរពី Supabase សូមទាក់ទងមកក្រុមការងារ [CONTACT]។',
+                'Note: You will be logged out immediately. To permanently remove your auth login record from Supabase, please reach out to [CONTACT].'
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="min-h-[44px] w-full py-2.5 px-4 rounded-full bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-xs transition-all disabled:opacity-50"
+              >
+                {isDeleting
+                  ? t('កំពុងលុបទិន្នន័យ...', 'Deleting data...')
+                  : t('បាទ/ចាស លុបទិន្នន័យទាំងអស់', 'Yes, Delete All My Data')}
+              </button>
+
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="min-h-[44px] w-full py-2.5 px-4 rounded-full bg-white border border-[#E5EADF] text-[#5F6E60] hover:text-[#233125] text-xs sm:text-sm font-medium transition-colors"
+              >
+                {t('បោះបង់ (Cancel)', 'Cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
