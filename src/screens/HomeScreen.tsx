@@ -16,6 +16,7 @@ import React, { useEffect } from 'react';
 import { ChevronRight, Heart } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { FlowerVisual } from '../components/FlowerVisual';
+import { FruitSize } from '../components/FruitSize';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { TopicCard } from '../components/TopicCard';
 import { LittleReminder } from '../components/LittleReminder';
@@ -53,12 +54,18 @@ export const HomeScreen: React.FC = () => {
             </p>
           </div>
 
-          {/* Growing Flower Visual */}
-          <div className="flex flex-col items-center shrink-0">
-            <FlowerVisual stage={monthlyMessage.flowerStage} size="lg" />
-            <span className="text-[11px] font-medium text-[#5F6E60] mt-1.5">
-              {t('ផ្ការីកលូតលាស់ជាមួយអ្នក', 'Growing with you')}
-            </span>
+          {/* Growing Flower Visual & Fruit Size Comparison */}
+          <div className="flex flex-col sm:flex-row items-center gap-3.5 shrink-0">
+            <div className="flex flex-col items-center">
+              <FlowerVisual stage={monthlyMessage.flowerStage} size="lg" />
+              <span className="text-[11px] font-medium text-[#5F6E60] mt-1.5">
+                {t('ផ្ការីកលូតលាស់ជាមួយអ្នក', 'Growing with you')}
+              </span>
+            </div>
+
+            <div className="w-full sm:w-auto">
+              <FruitSize />
+            </div>
           </div>
         </div>
 
