@@ -133,6 +133,7 @@ interface AppContextType {
   isAnalyticsOpen: boolean;
   setIsAnalyticsOpen: (open: boolean) => void;
   clearAnalytics: () => void;
+  deleteMyData: () => Promise<{ success: boolean; error?: string }>;
 
   // Toast Notification
   toastMessage: string | null;
@@ -364,6 +365,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('Read resources storage sync error', e);
     }
   }, [readResourceIds]);
+
+  // Load user's reading progress from Supabase user_read_resources table on login/mount
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from('user_read_resources')
+      .select('resource_id')
+      .eq('user_id', user.id)
+      .then(({ data, error }) => {
+        if (!error && Array.isArray(data)) {
+          const ids = data.map((r: any) => r.resource_id).filter(Boolean);
+          if (ids.length > 0) {
+            setReadResourceIds((prev) => Array.from(new Set([...prev, ...ids])));
+          }
+        }
+      });
+  }, [user?.id]);
 
   // Toast notification helper with auto-clear
   const showToast = (msg: string) => {
@@ -620,6 +638,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!readResourceIds.includes(id)) {
       setReadResourceIds((prev) => [...prev, id]);
       logEvent('resource_marked_read', id, currentWeek);
+      if (user?.id) {
+        supabase
+          .from('user_read_resources')
+          .insert({ user_id: user.id, resource_id: id })
+          .then(({ error }) => {
+            if (error) console.warn('Could not save read status to database', error.message);
+          });
+      }
       showToast(t('អ្នកបានអានអត្ថបទនេះរួចរាល់ហើយ 🌸', 'Article marked as read! Gentle progress, Mama 🌸'));
     }
   };
@@ -628,10 +654,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (readResourceIds.includes(id)) {
       setReadResourceIds((prev) => prev.filter((rId) => rId !== id));
       logEvent('resource_marked_unread', id, currentWeek);
+      if (user?.id) {
+        supabase
+          .from('user_read_resources')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('resource_id', id)
+          .then(({ error }) => {
+            if (error) console.warn('Could not delete read status from database', error.message);
+          });
+      }
       showToast(t('បានដកចេញពីបញ្ជីអានរួច។', 'Article unmarked.'));
     } else {
       setReadResourceIds((prev) => [...prev, id]);
       logEvent('resource_marked_read', id, currentWeek);
+      if (user?.id) {
+        supabase
+          .from('user_read_resources')
+          .insert({ user_id: user.id, resource_id: id })
+          .then(({ error }) => {
+            if (error) console.warn('Could not save read status to database', error.message);
+          });
+      }
       showToast(t('អ្នកបានអានអត្ថបទនេះរួចរាល់ហើយ 🌸', 'Article marked as read! Gentle progress, Mama 🌸'));
     }
   };
@@ -641,10 +685,63 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       localStorage.removeItem(STORAGE_KEY_READ_RESOURCES);
     } catch {}
+    if (user?.id) {
+      supabase
+        .from('user_read_resources')
+        .delete()
+        .eq('user_id', user.id)
+        .then(({ error }) => {
+          if (error) console.warn('Could not reset read status from database', error.message);
+        });
+    }
     showToast(t('បានកំណត់ប្រវត្តិការអានឡើងវិញ។', 'Reading progress reset.'));
   };
 
   const isResourceRead = (id: string) => readResourceIds.includes(id);
+
+  // Permanently deletes all personal data from database & local device
+  const deleteMyData = async (): Promise<{ success: boolean; error?: string }> => {
+    if (!user) {
+      return { success: false, error: t('មិនមានគណនីកំពុងចូលប្រើទេ។', 'No user logged in.') };
+    }
+
+    try {
+      // 1. Delete rows in analytics_events for this user
+      await supabase.from('analytics_events').delete().eq('user_id', user.id);
+
+      // 2. Delete rows in user_read_resources
+      await supabase.from('user_read_resources').delete().eq('user_id', user.id);
+
+      // 3. Delete user row in users table
+      const { error: userError } = await supabase.from('users').delete().eq('id', user.id);
+      if (userError) {
+        console.warn('Could not delete profile from users table', userError.message);
+      }
+
+      // 4. Clear local storage
+      try {
+        localStorage.removeItem(STORAGE_KEY_USER);
+        localStorage.removeItem(STORAGE_KEY_READ_RESOURCES);
+        localStorage.removeItem(STORAGE_KEY_ANALYTICS);
+      } catch {}
+
+      // 5. Reset local state
+      setUser(null);
+      setReadResourceIds([]);
+      setAnalyticsEvents([]);
+      setCurrentWeek(9);
+      setActiveTabState('home');
+
+      // 6. Sign out of Supabase auth
+      await supabase.auth.signOut();
+
+      showToast(t('ទិន្នន័យទាំងអស់របស់អ្នកត្រូវបានលុបចេញដោយសុវត្ថិភាព 🌸', 'All your data has been safely deleted 🌸'));
+      return { success: true };
+    } catch (err: any) {
+      console.error('Delete data failed:', err);
+      return { success: false, error: err?.message || 'Delete data failed' };
+    }
+  };
 
   const value: AppContextType = {
     language,
@@ -698,6 +795,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isAnalyticsOpen,
     setIsAnalyticsOpen,
     clearAnalytics,
+    deleteMyData,
     toastMessage,
     showToast,
   };
