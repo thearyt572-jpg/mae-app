@@ -84,6 +84,19 @@ export interface PlanItem {
   created_at?: string;
 }
 
+export interface TelegramLink {
+  user_id: string;
+  chat_id: number;
+  created_at: string;
+}
+
+export interface LinkCode {
+  code: string;
+  user_id: string;
+  expires_at: string;
+  created_at?: string;
+}
+
 export type TopicCategoryIcon = 'nutrition' | 'checkup' | 'daily' | 'preparation';
 
 export interface FocusTopic {
@@ -186,6 +199,7 @@ export type AnalyticsEventType =
   | 'onboarding_completed'
   | 'journey_opened'
   | 'pregnancy_week_selected'
+  | 'week_viewed'
   | 'monthly_message_played'
   | 'monthly_message_completed'
   | 'weekly_guidance_played'
@@ -204,6 +218,8 @@ export type AnalyticsEventType =
   | 'plan_item_added'
   | 'plan_item_completed'
   | 'plan_item_deleted'
+  | 'telegram_linked'
+  | 'telegram_unlinked'
   | 'logout_completed';
 
 export interface AnalyticsEvent {
