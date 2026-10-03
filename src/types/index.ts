@@ -55,12 +55,33 @@ export interface PregnancyResource {
   keyTakeawayEn?: string;
   importantNoteKh?: string;
   status: ResourceStatus;
+  planSuggestions?: PlanSuggestion[];
   createdAt?: string;
   updatedAt?: string;
 
   // Convenience aliases for flexible display
   title?: string;
   summary?: string;
+}
+
+export interface PlanSuggestion {
+  id: string;
+  text_kh: string;
+  text_en: string;
+}
+
+export interface PlanItem {
+  id: string;
+  user_id: string;
+  text_kh: string;
+  text_en: string;
+  source_type: 'resource' | 'voice_message';
+  source_id: string;
+  start_date: string;
+  end_date: string;
+  reminder_time?: string;
+  done: boolean;
+  created_at?: string;
 }
 
 export type TopicCategoryIcon = 'nutrition' | 'checkup' | 'daily' | 'preparation';
@@ -142,6 +163,7 @@ export interface MonthlyMessage {
   flowerStage: FlowerStage;
   reminderKh: string;
   reminderEn: string;
+  planSuggestions?: PlanSuggestion[];
 }
 
 /**
@@ -178,6 +200,10 @@ export type AnalyticsEventType =
   | 'notification_preference_selected'
   | 'profile_updated'
   | 'feedback_submitted'
+  | 'plan_sheet_opened'
+  | 'plan_item_added'
+  | 'plan_item_completed'
+  | 'plan_item_deleted'
   | 'logout_completed';
 
 export interface AnalyticsEvent {
