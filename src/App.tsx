@@ -18,6 +18,7 @@ import { ResourceModal } from './components/ResourceModal';
 import { TopicModal } from './components/TopicModal';
 import { ContentEntryModal } from './components/ContentEntryModal';
 import { AnalyticsDashboardModal } from './components/AnalyticsDashboardModal';
+import { ConsentBanner } from './components/ConsentBanner';
 
 const AppContent: React.FC = () => {
   const {
@@ -94,6 +95,9 @@ const AppContent: React.FC = () => {
 
       {/* Mobile Fixed Bottom Navigation */}
       <BottomNav />
+
+      {/* Research & Data Privacy Consent Banner */}
+      <ConsentBanner />
 
       {/* Global Interactive Modals */}
       <AuthModal />
