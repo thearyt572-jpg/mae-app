@@ -167,6 +167,7 @@ export type AnalyticsEventType =
   | 'original_source_clicked'
   | 'notification_preference_selected'
   | 'profile_updated'
+  | 'feedback_submitted'
   | 'logout_completed';
 
 export interface AnalyticsEvent {
@@ -177,4 +178,12 @@ export interface AnalyticsEvent {
   pregnancyWeek?: number;
   timestamp: string;
   metadata?: Record<string, unknown>;
+}
+
+export interface BabySize {
+  week: number;
+  fruitKh: string;
+  fruitEn: string;
+  sizeCm: number;
+  emoji?: string;
 }
