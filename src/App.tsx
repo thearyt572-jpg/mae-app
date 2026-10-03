@@ -55,7 +55,7 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF9F5] text-[#233125]">
+    <div className="min-h-[100dvh] flex flex-col bg-[#FAF9F5] text-[#233125] overflow-x-hidden">
       {/* Top Navigation Bar */}
       <Navbar />
 
@@ -63,7 +63,7 @@ const AppContent: React.FC = () => {
       {toastMessage && (
         <aside
           aria-label="Notification alert"
-          className="fixed top-18 left-1/2 -translate-x-1/2 z-50 max-w-sm sm:max-w-md w-[92%] px-4 py-3 rounded-2xl bg-[#233125] text-white text-xs sm:text-sm font-medium shadow-xl border border-[#88A04D]/40 flex items-center justify-between gap-3 animate-fade-in"
+          className="fixed top-[max(1.25rem,env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-50 max-w-sm sm:max-w-md w-[92%] px-4 py-3 rounded-2xl bg-[#233125] text-white text-xs sm:text-sm font-medium shadow-xl border border-[#88A04D]/40 flex items-center justify-between gap-3 animate-fade-in"
         >
           <div className="flex items-center gap-2">
             <span>🌸</span>
@@ -72,8 +72,8 @@ const AppContent: React.FC = () => {
         </aside>
       )}
 
-      {/* Centered Desktop Content Container (~1120px max-width) */}
-      <main className="flex-1 w-full max-w-[1140px] mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-20 md:pb-12">
+      {/* Main Content: full width on mobile with safe horizontal padding, centered on desktop */}
+      <main className="flex-1 w-full max-w-[1140px] mx-auto px-4 sm:px-6 pt-4 sm:pt-8 pb-28 md:pb-12">
         {renderCurrentScreen()}
       </main>
 
