@@ -24,34 +24,43 @@ export const Navbar: React.FC = () => {
     setIsAnalyticsOpen,
     language,
     toggleLanguage,
+    currentWeek,
     t,
   } = useApp();
 
   return (
-    <header className="sticky top-0 z-40 bg-[#FAF9F5]/92 backdrop-blur-md border-b border-[#E5EADF]">
-      <div className="max-w-[1140px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+    <header className="sticky top-0 z-40 bg-[#FAF9F5]/95 backdrop-blur-md border-b border-[#E5EADF] pt-[env(safe-area-inset-top)]">
+      <div className="max-w-[1140px] mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
         {/* Brand Wordmark: ម៉ែ — by FlowErs */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setActiveTab('home')}
-            className="flex items-center gap-2.5 group text-left"
+            className="flex items-center gap-2 group text-left min-h-[44px] min-w-[44px] py-1"
+            aria-label="ម៉ែ — by FlowErs Home"
           >
-            <span className="w-9 h-9 rounded-full bg-[#EBF1E4] border border-[#88A04D]/30 flex items-center justify-center text-lg shadow-2xs group-hover:scale-105 transition-transform">
+            <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#EBF1E4] border border-[#88A04D]/30 flex items-center justify-center text-base sm:text-lg shadow-2xs group-hover:scale-105 transition-transform">
               🌸
             </span>
             <div className="flex flex-col">
-              <span className="text-2xl font-bold font-serif text-[#233125] tracking-tight group-hover:text-[#5C7034] transition-colors leading-none">
+              <span className="text-xl sm:text-2xl font-bold font-serif text-[#233125] tracking-tight group-hover:text-[#5C7034] transition-colors leading-none">
                 ម៉ែ
               </span>
-              <span className="text-[10px] text-[#5F6E60] font-medium tracking-wide">
+              <span className="text-[9px] sm:text-[10px] text-[#5F6E60] font-medium tracking-wide">
                 by FlowErs
               </span>
             </div>
           </button>
+
+          {/* Mobile week indicator when authenticated */}
+          {isAuthenticated && (
+            <span className="inline-flex md:hidden items-center px-2 py-0.5 rounded-full bg-[#F0F4E8] text-[#5C7034] text-[11px] font-semibold border border-[#88A04D]/30">
+              {t(`ស. ${currentWeek}`, `W${currentWeek}`)}
+            </span>
+          )}
         </div>
 
-        {/* 4 Clean Navigation Links (Khmer First) */}
+        {/* 4 Clean Navigation Links (Khmer First) - Hidden on phones */}
         <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-[#5F6E60]">
           <button
             type="button"
@@ -103,13 +112,14 @@ export const Navbar: React.FC = () => {
         </nav>
 
         {/* Right Zone: Language Toggle + Content Entry + Auth */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Language Switcher */}
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          {/* Language Switcher - 44px min tap target */}
           <button
             type="button"
             onClick={toggleLanguage}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium text-[#5F6E60] hover:text-[#233125] bg-white border border-[#E5EADF] hover:border-[#88A04D]/40 transition-colors"
+            className="flex items-center justify-center gap-1 min-h-[44px] px-2.5 py-1.5 rounded-full text-xs font-semibold text-[#5F6E60] hover:text-[#233125] bg-white border border-[#E5EADF] hover:border-[#88A04D]/40 transition-colors"
             title="ប្តូរភាសា / Switch Language"
+            aria-label="Toggle language"
           >
             <Globe className="w-3.5 h-3.5 text-[#88A04D]" />
             <span>{language === 'km' ? 'ខ្មែរ' : 'EN'}</span>
@@ -122,7 +132,7 @@ export const Navbar: React.FC = () => {
               setEditingResource(null);
               setIsContentEntryOpen(true);
             }}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[#5F6E60] bg-white border border-[#E5EADF] hover:text-[#233125] hover:border-[#88A04D]/40 transition-colors"
+            className="hidden sm:inline-flex items-center gap-1.5 min-h-[44px] px-3 py-1.5 rounded-full text-xs font-medium text-[#5F6E60] bg-white border border-[#E5EADF] hover:text-[#233125] hover:border-[#88A04D]/40 transition-colors"
             title="បញ្ចូលឯកសារចំណេះដឹង (Team CMS)"
           >
             <Database className="w-3.5 h-3.5 text-[#88A04D]" />
@@ -133,7 +143,7 @@ export const Navbar: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsAnalyticsOpen(true)}
-            className="p-2 rounded-full text-[#5F6E60] hover:text-[#233125] hover:bg-white border border-transparent hover:border-[#E5EADF] transition-colors"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full text-[#5F6E60] hover:text-[#233125] hover:bg-white border border-transparent hover:border-[#E5EADF] transition-colors"
             title={t('ទិន្នន័យស្រាវជ្រាវ MVP', 'MVP Research Telemetry')}
             aria-label="MVP Telemetry"
           >
@@ -145,30 +155,28 @@ export const Navbar: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('profile')}
-              className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-white border border-[#E5EADF] hover:border-[#88A04D]/40 text-xs font-medium text-[#233125] transition-colors"
+              className="flex items-center gap-1.5 min-h-[44px] pl-1.5 pr-2.5 sm:pr-3 py-1.5 rounded-full bg-white border border-[#E5EADF] hover:border-[#88A04D]/40 text-xs font-medium text-[#233125] transition-colors"
+              aria-label="Open profile"
             >
-              <span className="w-6 h-6 rounded-full bg-[#EBF1E4] text-[#88A04D] flex items-center justify-center text-xs font-bold">
-                {user?.name.charAt(0).toUpperCase()}
+              <span className="w-7 h-7 rounded-full bg-[#EBF1E4] text-[#88A04D] flex items-center justify-center text-xs font-bold">
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'M'}
               </span>
               <span className="hidden sm:inline font-medium truncate max-w-[100px]">
                 {user?.name}
               </span>
             </button>
           ) : (
-            <div className="flex items-center gap-1.5">
-  
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthModalMode('login');
-                  setIsAuthModalOpen(true);
-                }}
-                className="inline-flex items-center gap-1 px-4 py-1.5 rounded-full bg-[#88A04D] hover:bg-[#5C7034] text-white text-xs font-medium shadow-2xs transition-colors"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>{t('ចូលប្រើ', 'Log In')}</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthModalMode('login');
+                setIsAuthModalOpen(true);
+              }}
+              className="inline-flex items-center justify-center gap-1 min-h-[44px] px-3.5 sm:px-4 py-1.5 rounded-full bg-[#88A04D] hover:bg-[#5C7034] text-white text-xs font-semibold shadow-2xs transition-colors"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>{t('ចូលប្រើ', 'Log In')}</span>
+            </button>
           )}
         </div>
       </div>
