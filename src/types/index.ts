@@ -78,6 +78,14 @@ export interface FocusTopic {
   suggestedQuestionsEn?: string[];
 }
 
+export interface BabySize {
+  week: number;
+  fruitKh: string;
+  fruitEn: string;
+  sizeCm: number;
+  emoji?: string;
+}
+
 export interface FlowerStage {
   phaseNameKh?: string;
   phaseNameEn?: string;
@@ -129,6 +137,8 @@ export interface MonthlyMessage {
   audioScriptEn: string;
   audioDuration: string;
   audioUrl?: string;
+  letterKh?: string;
+  letterEn?: string;
   flowerStage: FlowerStage;
   reminderKh: string;
   reminderEn: string;
@@ -178,12 +188,4 @@ export interface AnalyticsEvent {
   pregnancyWeek?: number;
   timestamp: string;
   metadata?: Record<string, unknown>;
-}
-
-export interface BabySize {
-  week: number;
-  fruitKh: string;
-  fruitEn: string;
-  sizeCm: number;
-  emoji?: string;
 }
