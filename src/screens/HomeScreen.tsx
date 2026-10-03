@@ -96,6 +96,8 @@ export const HomeScreen: React.FC = () => {
           title={t(monthlyMessage.titleKh, monthlyMessage.titleEn)}
           subtitle={t('«មានសារតូចមួយសម្រាប់អ្នកក្នុងខែនេះ»', '"A short message for you this month"')}
           transcript={t(monthlyMessage.audioScriptKh, monthlyMessage.audioScriptEn)}
+          letter={t(monthlyMessage.letterKh || '', monthlyMessage.letterEn || '')}
+          audioUrl={monthlyMessage.audioUrl}
           durationStr={monthlyMessage.audioDuration}
           monthOrWeek={currentMonth}
         />
