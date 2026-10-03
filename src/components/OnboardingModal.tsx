@@ -64,14 +64,14 @@ export const OnboardingModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs overflow-y-auto"
       role="dialog"
       aria-modal="true"
     >
-      <div className="relative w-full max-w-md rounded-3xl bg-[#FAF9F5] border border-[#E5EADF] shadow-2xl overflow-hidden my-6">
-        {/* Step Indicator */}
+      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-[#FAF9F5] border-t sm:border border-[#E5EADF] shadow-2xl overflow-hidden max-h-[92vh] sm:max-h-[85vh] flex flex-col animate-slide-up">
+        {/* Step Indicator - Sticky */}
         {step <= 4 && (
-          <div className="p-4 sm:p-5 bg-white border-b border-[#E5EADF] flex items-center justify-between">
+          <div className="p-4 sm:p-5 bg-white border-b border-[#E5EADF] flex items-center justify-between shrink-0">
             <div className="flex items-center gap-1.5">
               {[1, 2, 3, 4].map((i) => (
                 <span
@@ -92,7 +92,7 @@ export const OnboardingModal: React.FC = () => {
           </div>
         )}
 
-        <div className="p-5 sm:p-7 space-y-5">
+        <div className="p-5 sm:p-7 space-y-5 overflow-y-auto flex-1 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           {/* Step 1: Name */}
           {step === 1 && (
             <div className="space-y-4">
@@ -100,7 +100,7 @@ export const OnboardingModal: React.FC = () => {
                 🌸
               </div>
               <div className="space-y-1">
-                <h3 className="text-xl font-serif font-bold text-[#233125]">
+                <h3 className="text-lg sm:text-xl font-serif font-bold text-[#233125]">
                   {t('តើម៉ែគួរហៅអ្នកបែបណា?', 'What should Mea call you?')}
                 </h3>
                 <p className="text-xs sm:text-sm text-[#5F6E60]">
@@ -115,7 +115,7 @@ export const OnboardingModal: React.FC = () => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={t('ឧទាហរណ៍៖ ស្រីស្រស់ ឬ ចាន់ថន', 'e.g. Sreysros')}
-                  className="w-full px-4 py-3 rounded-2xl bg-white border border-[#E5EADF] text-sm text-[#233125] focus:border-[#88A04D] focus:ring-1 focus:ring-[#88A04D]"
+                  className="w-full min-h-[48px] px-4 py-3 rounded-2xl bg-white border border-[#E5EADF] text-base text-[#233125] focus:border-[#88A04D] focus:ring-1 focus:ring-[#88A04D]"
                 />
               </div>
 
@@ -123,7 +123,7 @@ export const OnboardingModal: React.FC = () => {
                 type="button"
                 onClick={handleNext}
                 disabled={!name.trim()}
-                className="w-full py-3 rounded-full bg-[#88A04D] hover:bg-[#5C7034] text-white text-xs sm:text-sm font-semibold shadow-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full min-h-[48px] py-3 rounded-full bg-[#88A04D] hover:bg-[#5C7034] active:scale-[0.98] text-white text-sm font-semibold shadow-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <span>{t('បន្តទៅមុខ', 'Continue')}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -138,7 +138,7 @@ export const OnboardingModal: React.FC = () => {
                 🌱
               </div>
               <div className="space-y-1">
-                <h3 className="text-xl font-serif font-bold text-[#233125]">
+                <h3 className="text-lg sm:text-xl font-serif font-bold text-[#233125]">
                   {t('តើអ្នកពពោះបានប៉ុន្មានសប្ដាហ៍ហើយ?', 'How far along are you?')}
                 </h3>
                 <p className="text-xs sm:text-sm text-[#5F6E60]">
@@ -151,7 +151,7 @@ export const OnboardingModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setCalculationMode('week')}
-                  className={`py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                  className={`min-h-[40px] py-2 text-xs font-semibold rounded-lg transition-colors ${
                     calculationMode === 'week'
                       ? 'bg-white text-[#233125] shadow-2xs'
                       : 'text-[#5F6E60]'
@@ -162,7 +162,7 @@ export const OnboardingModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setCalculationMode('dueDate')}
-                  className={`py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                  className={`min-h-[40px] py-2 text-xs font-semibold rounded-lg transition-colors ${
                     calculationMode === 'dueDate'
                       ? 'bg-white text-[#233125] shadow-2xs'
                       : 'text-[#5F6E60]'
@@ -180,7 +180,7 @@ export const OnboardingModal: React.FC = () => {
                   <select
                     value={pregnancyWeek}
                     onChange={(e) => setPregnancyWeek(parseInt(e.target.value, 10))}
-                    className="w-full px-4 py-3 rounded-2xl bg-white border border-[#E5EADF] text-sm text-[#233125] font-semibold focus:border-[#88A04D]"
+                    className="w-full min-h-[48px] px-4 py-3 rounded-2xl bg-white border border-[#E5EADF] text-base text-[#233125] font-semibold focus:border-[#88A04D]"
                   >
                     {Array.from({ length: 40 }, (_, i) => i + 1).map((w) => (
                       <option key={w} value={w}>
@@ -198,7 +198,7 @@ export const OnboardingModal: React.FC = () => {
                     type="date"
                     value={dueDate}
                     onChange={handleDueDateChange}
-                    className="w-full px-4 py-3 rounded-2xl bg-white border border-[#E5EADF] text-sm text-[#233125] focus:border-[#88A04D]"
+                    className="w-full min-h-[48px] px-4 py-3 rounded-2xl bg-white border border-[#E5EADF] text-base text-[#233125] focus:border-[#88A04D]"
                   />
                   {dueDate && (
                     <p className="text-xs text-[#5C7034] font-medium">
@@ -212,14 +212,15 @@ export const OnboardingModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="px-4 py-3 rounded-full border border-[#E5EADF] text-xs font-semibold text-[#5F6E60] hover:bg-white"
+                  className="min-h-[48px] min-w-[48px] px-4 py-3 rounded-full border border-[#E5EADF] text-xs font-semibold text-[#5F6E60] hover:bg-white flex items-center justify-center"
+                  aria-label="Back"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="flex-1 py-3 rounded-full bg-[#88A04D] hover:bg-[#5C7034] text-white text-xs sm:text-sm font-semibold shadow-xs transition-all flex items-center justify-center gap-2"
+                  className="flex-1 min-h-[48px] py-3 rounded-full bg-[#88A04D] hover:bg-[#5C7034] active:scale-[0.98] text-white text-sm font-semibold shadow-xs transition-all flex items-center justify-center gap-2"
                 >
                   <span>{t('បន្តទៅមុខ', 'Continue')}</span>
                   <ArrowRight className="w-4 h-4" />
@@ -235,7 +236,7 @@ export const OnboardingModal: React.FC = () => {
                 🌐
               </div>
               <div className="space-y-1">
-                <h3 className="text-xl font-serif font-bold text-[#233125]">
+                <h3 className="text-lg sm:text-xl font-serif font-bold text-[#233125]">
                   {t('ភាសាដែលអ្នកចង់ប្រើ', 'Choose your language')}
                 </h3>
                 <p className="text-xs sm:text-sm text-[#5F6E60]">
@@ -247,7 +248,7 @@ export const OnboardingModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setLanguage('km')}
-                  className={`w-full p-4 rounded-2xl border text-left flex items-center justify-between transition-all ${
+                  className={`w-full min-h-[52px] p-4 rounded-2xl border text-left flex items-center justify-between transition-all ${
                     language === 'km'
                       ? 'bg-[#EBF1E4] border-[#88A04D] shadow-2xs'
                       : 'bg-white border-[#E5EADF]'
@@ -263,7 +264,7 @@ export const OnboardingModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setLanguage('en')}
-                  className={`w-full p-4 rounded-2xl border text-left flex items-center justify-between transition-all ${
+                  className={`w-full min-h-[52px] p-4 rounded-2xl border text-left flex items-center justify-between transition-all ${
                     language === 'en'
                       ? 'bg-[#EBF1E4] border-[#88A04D] shadow-2xs'
                       : 'bg-white border-[#E5EADF]'
@@ -281,14 +282,15 @@ export const OnboardingModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="px-4 py-3 rounded-full border border-[#E5EADF] text-xs font-semibold text-[#5F6E60] hover:bg-white"
+                  className="min-h-[48px] min-w-[48px] px-4 py-3 rounded-full border border-[#E5EADF] text-xs font-semibold text-[#5F6E60] hover:bg-white flex items-center justify-center"
+                  aria-label="Back"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="flex-1 py-3 rounded-full bg-[#88A04D] hover:bg-[#5C7034] text-white text-xs sm:text-sm font-semibold shadow-xs transition-all flex items-center justify-center gap-2"
+                  className="flex-1 min-h-[48px] py-3 rounded-full bg-[#88A04D] hover:bg-[#5C7034] active:scale-[0.98] text-white text-sm font-semibold shadow-xs transition-all flex items-center justify-center gap-2"
                 >
                   <span>{t('បន្តទៅមុខ', 'Continue')}</span>
                   <ArrowRight className="w-4 h-4" />
@@ -304,7 +306,7 @@ export const OnboardingModal: React.FC = () => {
                 🔔
               </div>
               <div className="space-y-1">
-                <h3 className="text-xl font-serif font-bold text-[#233125]">
+                <h3 className="text-lg sm:text-xl font-serif font-bold text-[#233125]">
                   {t('ការទទួលការរំលឹកពីម៉ែ', 'Reminder frequency')}
                 </h3>
                 <p className="text-xs sm:text-sm text-[#5F6E60]">
@@ -334,7 +336,7 @@ export const OnboardingModal: React.FC = () => {
                     key={item.id}
                     type="button"
                     onClick={() => setNotificationPreference(item.id)}
-                    className={`w-full p-3.5 rounded-2xl border text-left flex items-start justify-between transition-all ${
+                    className={`w-full min-h-[50px] p-3.5 rounded-2xl border text-left flex items-start justify-between transition-all ${
                       notificationPreference === item.id
                         ? 'bg-[#EBF1E4] border-[#88A04D] shadow-2xs'
                         : 'bg-white border-[#E5EADF]'
@@ -353,14 +355,15 @@ export const OnboardingModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setStep(3)}
-                  className="px-4 py-3 rounded-full border border-[#E5EADF] text-xs font-semibold text-[#5F6E60] hover:bg-white"
+                  className="min-h-[48px] min-w-[48px] px-4 py-3 rounded-full border border-[#E5EADF] text-xs font-semibold text-[#5F6E60] hover:bg-white flex items-center justify-center"
+                  aria-label="Back"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="flex-1 py-3 rounded-full bg-[#88A04D] hover:bg-[#5C7034] text-white text-xs sm:text-sm font-semibold shadow-xs transition-all flex items-center justify-center gap-2"
+                  className="flex-1 min-h-[48px] py-3 rounded-full bg-[#88A04D] hover:bg-[#5C7034] active:scale-[0.98] text-white text-sm font-semibold shadow-xs transition-all flex items-center justify-center gap-2"
                 >
                   <span>{t('រួចរាល់', 'Complete')}</span>
                   <ArrowRight className="w-4 h-4" />
@@ -377,7 +380,7 @@ export const OnboardingModal: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-2xl font-serif font-bold text-[#233125]">
+                <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#233125]">
                   {t(`សូមស្វាគមន៍មកកាន់ «ម៉ែ», ${name} 🌸`, `Welcome to ម៉ែ, ${name} 🌸`)}
                 </h3>
                 <p className="text-xs sm:text-sm text-[#233125]/85 italic leading-relaxed max-w-sm mx-auto">
@@ -392,7 +395,7 @@ export const OnboardingModal: React.FC = () => {
               <button
                 type="button"
                 onClick={handleFinish}
-                className="w-full py-3.5 rounded-full bg-[#88A04D] hover:bg-[#5C7034] text-white text-xs sm:text-sm font-bold shadow-xs transition-all"
+                className="w-full min-h-[48px] py-3.5 rounded-full bg-[#88A04D] hover:bg-[#5C7034] active:scale-[0.98] text-white text-sm font-bold shadow-xs transition-all"
               >
                 {t('ចាប់ផ្ដើមដំណើរ 🌸', 'Enter Your Journey 🌸')}
               </button>
