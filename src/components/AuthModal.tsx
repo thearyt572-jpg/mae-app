@@ -132,6 +132,19 @@ export const AuthModal: React.FC = () => {
 
         {/* Form Body - Scrollable with safe bottom padding */}
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          {/* Helpful note for testers */}
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-[#EBF1E4]/70 border border-[#88A04D]/30 text-xs text-[#233125] leading-relaxed">
+            <p className="font-semibold text-[#5C7034] mb-0.5">
+              💡 {t('ព័ត៌មានសម្រាប់អ្នកសាកល្បង (Tester Note)', 'Note for Testers')}
+            </p>
+            <p className="text-[11px] sm:text-xs text-[#5F6E60]">
+              {t(
+                'អ្នកអាចប្រើអ៊ីមែលសន្មត ឬបង្កើតឡើងដោយខ្លួនឯងបាន (ឧទាហរណ៍៖ test1@example.com) — គ្មានអ៊ីមែលណាមួយត្រូវផ្ញើទៅប្រអប់សំបុត្រឡើយ។ ប៉ុន្តែសូមចងចាំអ៊ីមែលនិងពាក្យសម្ងាត់របស់អ្នក ពីព្រោះកម្មវិធីមិនទាន់មានមុខងារស្រោចស្រង់ពាក្យសម្ងាត់ (Password Recovery) ទេ។',
+                'You can use a made-up email (e.g. test1@example.com) — nothing is ever sent to it. Please remember your email and password, as there is currently no password recovery.'
+              )}
+            </p>
+          </div>
+
           {errorMessage && (
             <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
