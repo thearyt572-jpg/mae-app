@@ -39,21 +39,21 @@ export const TopicModal: React.FC<TopicModalProps> = ({ topic, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="topic-modal-title"
     >
-      <div className="relative w-full max-w-lg rounded-3xl bg-[#FAF9F5] border border-[#E5EADF] shadow-xl overflow-hidden my-6">
+      <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-3xl bg-[#FAF9F5] border-t sm:border border-[#E5EADF] shadow-2xl overflow-hidden max-h-[92vh] sm:max-h-[85vh] flex flex-col animate-slide-up">
         {/* Header */}
-        <div className="p-5 sm:p-6 bg-white border-b border-[#E5EADF] flex items-start justify-between gap-4">
+        <div className="p-4 sm:p-6 bg-white border-b border-[#E5EADF] flex items-start justify-between gap-3 shrink-0">
           <div>
-            <span className="text-xs font-semibold text-[#88A04D] uppercase tracking-wider block mb-1">
+            <span className="text-[11px] sm:text-xs font-semibold text-[#88A04D] uppercase tracking-wider block mb-1">
               🌸 {t('ចំណុចផ្តោតសំខាន់', 'Key Focus')} · {topic.category}
             </span>
             <h2
               id="topic-modal-title"
-              className="text-lg sm:text-xl font-bold text-[#233125] font-serif leading-snug"
+              className="text-base sm:text-xl font-bold text-[#233125] font-serif leading-snug"
             >
               {title}
             </h2>
@@ -62,7 +62,7 @@ export const TopicModal: React.FC<TopicModalProps> = ({ topic, onClose }) => {
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-[#5F6E60] hover:text-[#233125] rounded-full hover:bg-[#FAF9F5] transition-colors"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-[#5F6E60] hover:text-[#233125] rounded-full hover:bg-[#FAF9F5] transition-colors"
             aria-label="Close dialog"
           >
             <X className="w-5 h-5" />
@@ -70,7 +70,7 @@ export const TopicModal: React.FC<TopicModalProps> = ({ topic, onClose }) => {
         </div>
 
         {/* Body */}
-        <div className="p-5 sm:p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+        <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
           {/* Summary Box */}
           <div className="rounded-2xl bg-white border border-[#E5EADF] p-4 text-sm sm:text-base text-[#233125] leading-relaxed">
             <p>{summary}</p>
@@ -107,7 +107,7 @@ export const TopicModal: React.FC<TopicModalProps> = ({ topic, onClose }) => {
                   <div
                     key={res.id}
                     onClick={() => handleResourceClick(res)}
-                    className="p-3.5 rounded-2xl bg-white border border-[#E5EADF] hover:border-[#88A04D]/60 hover:shadow-xs transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                    className="min-h-[48px] p-3.5 rounded-2xl bg-white border border-[#E5EADF] hover:border-[#88A04D]/60 hover:shadow-xs transition-all cursor-pointer flex items-center justify-between gap-3 group active:bg-[#F0F4E8]"
                   >
                     <div>
                       <h4 className="text-xs sm:text-sm font-semibold text-[#233125] group-hover:text-[#5C7034] transition-colors leading-snug">
@@ -125,12 +125,12 @@ export const TopicModal: React.FC<TopicModalProps> = ({ topic, onClose }) => {
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 sm:p-5 bg-white border-t border-[#E5EADF] flex items-center justify-end">
+        {/* Footer - Safe area bottom */}
+        <div className="p-3 sm:p-5 bg-white border-t border-[#E5EADF] flex items-center justify-end shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-full bg-[#FAF9F5] border border-[#E5EADF] text-xs font-medium text-[#233125] hover:bg-[#EBF1E4] transition-colors"
+            className="min-h-[44px] px-6 py-2.5 rounded-full bg-[#FAF9F5] border border-[#E5EADF] text-xs sm:text-sm font-semibold text-[#233125] hover:bg-[#EBF1E4] active:bg-[#EBF1E4] transition-colors"
           >
             {t('បិទ', 'Close')}
           </button>
