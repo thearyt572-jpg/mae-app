@@ -66,7 +66,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({ resource, onClose 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="resource-modal-title"

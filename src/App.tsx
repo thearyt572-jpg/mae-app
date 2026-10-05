@@ -106,16 +106,16 @@ const AppContent: React.FC = () => {
       {/* Global Interactive Modals */}
       <AuthModal />
       <OnboardingModal />
-      {selectedResource && (
-        <ResourceModal
-          resource={selectedResource}
-          onClose={() => setSelectedResource(null)}
-        />
-      )}
       {selectedTopic && (
         <TopicModal
           topic={selectedTopic}
           onClose={() => setSelectedTopic(null)}
+        />
+      )}
+      {selectedResource && (
+        <ResourceModal
+          resource={selectedResource}
+          onClose={() => setSelectedResource(null)}
         />
       )}
       <ContentEntryModal
