@@ -40,6 +40,7 @@ import {
   MONTHLY_MOM_MESSAGES,
 } from '../data/monthlyMessages';
 import { supabase } from '../lib/supabase';
+import { getSavedPreLoginAnswers, clearPreLoginAnswers } from '../components/PreLoginWizard';
 
 const STORAGE_KEY_USER = 'mae_user_session';
 const STORAGE_KEY_RESOURCES = 'mae_resources_catalog_v3';
@@ -456,7 +457,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       language: u.language,
       pregnancy_week: u.pregnancy_week,
       due_date: u.due_date || null,
+      due_date_method: u.due_date_method || null,
+      lmp_date: u.lmp_date || null,
+      occupation: u.occupation || null,
+      is_first_pregnancy: u.is_first_pregnancy !== undefined ? u.is_first_pregnancy : null,
+      children_count: u.children_count !== undefined ? u.children_count : null,
       notification_preference: u.notification_preference,
+      tier: u.tier || 'free',
+      premium_until: u.premium_until || null,
     });
     if (error) console.warn('Profile save failed', error.message);
   };
@@ -479,20 +487,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
     }
 
+    // Retrieve pre-login wizard answers from local memory if available
+    const wizardAnswers = getSavedPreLoginAnswers();
+    const calculatedWeek = wizardAnswers?.calculatedWeek || 9;
+
     const newUser: User = {
       id: data.user.id,
       name: name.trim(),
       email: cleanEmail,
       language: language || 'km',
-      pregnancy_week: 9,
+      pregnancy_week: calculatedWeek,
+      due_date: wizardAnswers?.dueDate,
+      due_date_method: wizardAnswers?.dueDateMethod,
+      lmp_date: wizardAnswers?.lmpDate,
+      occupation: wizardAnswers?.occupation,
+      is_first_pregnancy: wizardAnswers?.isFirstPregnancy,
+      children_count: wizardAnswers?.childrenCount,
       notification_preference: 'weekly',
+      tier: 'free',
       created_at: new Date().toISOString(),
     };
 
     setUser(newUser);
+    setCurrentWeek(calculatedWeek);
     saveProfile(newUser);
-    logEvent('account_created', newUser.id, 9);
-    logEvent('signup_completed', newUser.id, 9);
+    clearPreLoginAnswers();
+
+    logEvent('account_created', newUser.id, calculatedWeek);
+    logEvent('signup_completed', newUser.id, calculatedWeek);
     setIsAuthModalOpen(false);
     setIsOnboardingOpen(true);
     showToast(t(`សូមស្វាគមន៍មកកាន់ «ម៉ែ», ${newUser.name} 🌸`, `Welcome to ម៉ែ, ${newUser.name} 🌸`));
@@ -518,11 +540,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       language: row?.language || language || 'km',
       pregnancy_week: row?.pregnancy_week || 9,
       due_date: row?.due_date || undefined,
+      due_date_method: row?.due_date_method || undefined,
+      lmp_date: row?.lmp_date || undefined,
+      occupation: row?.occupation || undefined,
+      is_first_pregnancy: row?.is_first_pregnancy !== undefined ? row.is_first_pregnancy : true,
+      children_count: row?.children_count || undefined,
       notification_preference: row?.notification_preference || 'weekly',
+      tier: row?.tier || 'free',
+      premium_until: row?.premium_until || undefined,
       created_at: row?.created_at || new Date().toISOString(),
     };
 
     setUser(returningUser);
+    if (returningUser.pregnancy_week) {
+      setCurrentWeek(returningUser.pregnancy_week);
+    }
     logEvent('login_completed', returningUser.id, returningUser.pregnancy_week);
     setIsAuthModalOpen(false);
     showToast(t(`សូមស្វាគមន៍ការត្រឡប់មកវិញ 🌸`, `Welcome back, Mama 🌸`));
@@ -713,7 +745,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // 2. Delete rows in user_read_resources
       await supabase.from('user_read_resources').delete().eq('user_id', user.id);
 
-      // 3. Delete user row in users table
+      // 3. Delete plan items and telegram links/codes
+      await supabase.from('plan_items').delete().eq('user_id', user.id);
+      await supabase.from('telegram_links').delete().eq('user_id', user.id);
+      await supabase.from('link_codes').delete().eq('user_id', user.id);
+
+      // 4. Delete user row in users table
       const { error: userError } = await supabase.from('users').delete().eq('id', user.id);
       if (userError) {
         console.warn('Could not delete profile from users table', userError.message);

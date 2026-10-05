@@ -12,9 +12,11 @@
  */
 
 import React, { useState } from 'react';
-import { User, Bell, Globe, LogOut, Calendar, Heart, Trash2, ShieldCheck, AlertTriangle, X } from 'lucide-react';
+import { User, Bell, Globe, LogOut, Calendar, Heart, Trash2, ShieldCheck, AlertTriangle, X, Briefcase, Baby } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { UserLanguage, NotificationPreference } from '../types';
+import { UserLanguage, NotificationPreference, DueDateMethod } from '../types';
+import { TelegramLink } from '../components/TelegramLink';
+import { DueDateModal } from '../components/DueDate';
 
 export const ProfileScreen: React.FC = () => {
   const {
@@ -34,6 +36,7 @@ export const ProfileScreen: React.FC = () => {
 
   const [editName, setEditName] = useState(user?.name || '');
   const [isEditing, setIsEditing] = useState(false);
+  const [isDueDateModalOpen, setIsDueDateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -89,6 +92,21 @@ export const ProfileScreen: React.FC = () => {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleSaveDueDate = (data: {
+    dueDate: string;
+    method: DueDateMethod;
+    calculatedWeek: number;
+    lmpDate?: string;
+  }) => {
+    updateUserPreferences({
+      due_date: data.dueDate,
+      due_date_method: data.method,
+      pregnancy_week: data.calculatedWeek,
+      lmp_date: data.lmpDate,
+    });
+    setCurrentWeek(data.calculatedWeek);
   };
 
   return (
@@ -150,11 +168,22 @@ export const ProfileScreen: React.FC = () => {
         </div>
 
         {/* 2. Pregnancy Week / Due Date */}
-        <div className="pt-4 border-t border-[#E5EADF] space-y-2">
-          <label className="block text-xs font-bold text-[#233125]">
-            {t('សប្ដាហ៍នៃការពពោះបច្ចុប្បន្ន', 'Current Pregnancy Week')}
-          </label>
-          <div className="flex items-center gap-3">
+        <div className="pt-4 border-t border-[#E5EADF] space-y-2.5">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold text-[#233125]">
+              {t('សប្ដាហ៍នៃការពពោះ និងថ្ងៃសម្រាល', 'Pregnancy Week & Due Date')}
+            </label>
+            <button
+              type="button"
+              onClick={() => setIsDueDateModalOpen(true)}
+              className="text-xs font-semibold text-[#88A04D] hover:text-[#5C7034] underline underline-offset-2 inline-flex items-center gap-1"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>{t('កែប្រែថ្ងៃសម្រាល (Calculator)', 'Change due date')}</span>
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
             <select
               value={currentWeek}
               onChange={(e) => {
@@ -172,12 +201,41 @@ export const ProfileScreen: React.FC = () => {
             </select>
 
             {user.due_date && (
-              <span className="text-xs text-[#5F6E60]">
-                {t('ប៉ាន់ស្មានថ្ងៃសម្រាល៖', 'Due date:')} {user.due_date}
+              <span className="text-xs text-[#5F6E60] bg-[#FAF9F5] px-3 py-2 rounded-xl border border-[#E5EADF]">
+                {t('ថ្ងៃសម្រាល៖', 'Due date:')}{' '}
+                <strong className="text-[#233125]">{user.due_date}</strong>
+                {user.due_date_method && (
+                  <span className="text-[10px] text-[#88A04D] ml-1">
+                    ({user.due_date_method})
+                  </span>
+                )}
               </span>
             )}
           </div>
         </div>
+
+        {/* 2b. Occupation & First Pregnancy (if recorded) */}
+        {(user.occupation || user.is_first_pregnancy !== undefined) && (
+          <div className="pt-3 border-t border-[#E5EADF] flex flex-wrap gap-2 text-xs">
+            {user.is_first_pregnancy !== undefined && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#FAF9F5] border border-[#E5EADF] text-[#5F6E60]">
+                <Baby className="w-3.5 h-3.5 text-[#88A04D]" />
+                <span>
+                  {user.is_first_pregnancy
+                    ? t('ពពោះលើកដំបូង', 'First pregnancy')
+                    : t(`ធ្លាប់មានកូន (${user.children_count || 1})`, `Has children (${user.children_count || 1})`)}
+                </span>
+              </span>
+            )}
+
+            {user.occupation && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#FAF9F5] border border-[#E5EADF] text-[#5F6E60]">
+                <Briefcase className="w-3.5 h-3.5 text-[#88A04D]" />
+                <span>{user.occupation}</span>
+              </span>
+            )}
+          </div>
+        )}
       </section>
 
       {/* 3. Language Selection (Khmer-First) */}
@@ -269,7 +327,12 @@ export const ProfileScreen: React.FC = () => {
         </div>
       </section>
 
-      {/* 5. Privacy & Research Data Consent */}
+      {/* 5. Telegram Daily Reminders Integration */}
+      <section>
+        <TelegramLink />
+      </section>
+
+      {/* 6. Privacy & Research Data Consent */}
       <section className="rounded-3xl bg-white border border-[#E5EADF] p-5 sm:p-6 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#5C7034]">
@@ -296,8 +359,8 @@ export const ProfileScreen: React.FC = () => {
 
         <p className="text-xs text-[#5F6E60] leading-relaxed">
           {t(
-            'ទិន្នន័យស្រាវជ្រាវ (ទំព័រដែលបានមើល អត្ថបទដែលបានអាន រយៈពេលស្តាប់) ត្រូវប្រើសម្រាប់តែកែលម្អកម្មវិធីដោយក្រុមការងារ [TEAM NAME] ប៉ុណ្ណោះ។ អ្នកអាចប្តូរការយល់ព្រមបានគ្រប់ពេល។',
-            'Research activity logs are used solely by [TEAM NAME] to improve the companion. You can change your choice anytime.'
+            'ទិន្នន័យស្រាវជ្រាវត្រូវបានប្រើសម្រាប់តែកែលម្អកម្មវិធីប៉ុណ្ណោះ។ ការភ្ជាប់ Telegram គឺស្រេចចិត្ត ដោយប្រព័ន្ធរក្សាទុកតែ Telegram Chat ID (គ្មានការរក្សាទុកលេខទូរស័ព្ទឡើយ) ហើយអ្នកអាចផ្តាច់បានគ្រប់ពេល។',
+            'Research logs are used solely to improve the app. Telegram reminders are optional: only your chat ID is stored (no phone numbers), and you can switch it off anytime.'
           )}
         </p>
 
@@ -405,6 +468,15 @@ export const ProfileScreen: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Due Date Calculator Modal */}
+      <DueDateModal
+        isOpen={isDueDateModalOpen}
+        onClose={() => setIsDueDateModalOpen(false)}
+        onSave={handleSaveDueDate}
+        initialDueDate={user.due_date}
+        initialMethod={user.due_date_method || 'doctor'}
+      />
     </div>
   );
 };

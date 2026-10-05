@@ -8,6 +8,8 @@ export type UserLanguage = 'km' | 'en';
 
 export type NotificationPreference = 'daily' | 'weekly' | 'none';
 
+export type DueDateMethod = 'doctor' | 'lmp' | 'conception';
+
 export interface User {
   id: string;
   name: string;
@@ -15,7 +17,14 @@ export interface User {
   language: UserLanguage;
   pregnancy_week: number;
   due_date?: string;
+  due_date_method?: DueDateMethod;
+  lmp_date?: string;
+  occupation?: string;
+  is_first_pregnancy?: boolean;
+  children_count?: number;
   notification_preference: NotificationPreference;
+  tier?: 'free' | 'premium';
+  premium_until?: string;
   created_at: string;
 }
 
@@ -220,6 +229,10 @@ export type AnalyticsEventType =
   | 'plan_item_deleted'
   | 'telegram_linked'
   | 'telegram_unlinked'
+  | 'onboarding_question_answered'
+  | 'due_date_updated'
+  | 'paywall_shown'
+  | 'upgrade_interest'
   | 'logout_completed';
 
 export interface AnalyticsEvent {

@@ -14,16 +14,23 @@
  * never as "child" (កូន).
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowRight, Heart, Headphones, Calendar, ShieldCheck, Lock } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { FlowerVisual } from '../components/FlowerVisual';
 import { MONTHLY_MOM_MESSAGES } from '../data/monthlyMessages';
+import { PreLoginWizard, PreLoginAnswers } from '../components/PreLoginWizard';
 
 export const LandingScreen: React.FC = () => {
   const { setIsAuthModalOpen, setAuthModalMode, t } = useApp();
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   const handleStart = () => {
+    setIsWizardOpen(true);
+  };
+
+  const handleWizardComplete = (_answers: PreLoginAnswers) => {
+    setIsWizardOpen(false);
     setAuthModalMode('signup');
     setIsAuthModalOpen(true);
   };
@@ -196,6 +203,13 @@ export const LandingScreen: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Pre-Login Onboarding Wizard & Due Date Calculator */}
+      <PreLoginWizard
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        onComplete={handleWizardComplete}
+      />
     </div>
   );
 };

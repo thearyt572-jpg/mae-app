@@ -8,10 +8,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Check, Calendar, Plus, Sparkles, LogIn, Clock } from 'lucide-react';
+import { X, Check, Calendar, Plus, Sparkles, LogIn, Clock, Send } from 'lucide-react';
 import { PlanSuggestion } from '../types';
 import { useApp } from '../context/AppContext';
 import { usePlan, getCambodiaTodayStr, addDaysToCambodiaDate } from '../context/PlanContext';
+import { supabase } from '../lib/supabase';
 
 interface AddToPlanSheetProps {
   isOpen: boolean;
@@ -38,11 +39,28 @@ export const AddToPlanSheet: React.FC<AddToPlanSheetProps> = ({
   // Duration: 'day' (1 day) or 'week' (7 days)
   const [duration, setDuration] = useState<'day' | 'week'>('day');
   const [reminderTime, setReminderTime] = useState<string>('08:00');
+  const [isTelegramLinked, setIsTelegramLinked] = useState<boolean>(false);
+  const [remindOnTelegram, setRemindOnTelegram] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (isOpen && user?.id) {
+      supabase
+        .from('telegram_links')
+        .select('chat_id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          setIsTelegramLinked(!!data);
+          if (data) setRemindOnTelegram(true);
+        });
+    }
+  }, [isOpen, user?.id]);
 
   useEffect(() => {
     if (isOpen) {
       setKeptSuggestions(suggestions);
       logEvent('plan_sheet_opened', sourceId, currentWeek, {
+        source_id: sourceId,
         source_type: sourceType,
         suggestions_count: suggestions.length,
       });
@@ -223,6 +241,51 @@ export const AddToPlanSheet: React.FC<AddToPlanSheetProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Telegram Reminder Switch */}
+        {isTelegramLinked ? (
+          <div className="pt-2 border-t border-[#E5EADF] flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#EBF1E4]/70 border border-[#88A04D]/35">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-[#88A04D] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                <Send className="w-4 h-4 ml-0.5" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-[#233125] block">
+                  {t('រំលឹកខ្ញុំតាម Telegram ផងដែរ', 'Also remind me on Telegram')}
+                </span>
+                <span className="text-[11px] text-[#5F6E60]">
+                  {t('ផ្ញើនៅម៉ោង ៨:០០ ព្រឹកជារៀងរាល់ថ្ងៃ', 'Delivered at 8:00 AM daily')}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              role="switch"
+              aria-checked={remindOnTelegram}
+              onClick={() => setRemindOnTelegram(!remindOnTelegram)}
+              className={`w-12 h-7 rounded-full transition-colors relative focus:outline-none ${
+                remindOnTelegram ? 'bg-[#88A04D]' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`w-5 h-5 rounded-full bg-white block transition-transform shadow-2xs ${
+                  remindOnTelegram ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        ) : (
+          <div className="pt-2 border-t border-[#E5EADF] text-[11px] text-[#5F6E60] flex items-center gap-1.5">
+            <Send className="w-3.5 h-3.5 text-[#88A04D] shrink-0" />
+            <span>
+              {t(
+                'អ្នកអាចភ្ជាប់ Telegram ក្នុងទំព័រ «គម្រោង» ឬ «គណនី» ដើម្បីទទួលសាររំលឹកនៅម៉ោង ៨ ព្រឹក។',
+                'You can link Telegram anytime in My Plan or Profile to get 8:00 AM morning reminders.'
+              )}
+            </span>
+          </div>
+        )}
 
         {/* Action Buttons: Confirm & Cancel */}
         <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#E5EADF]">

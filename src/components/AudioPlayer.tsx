@@ -55,7 +55,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const synthUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const synthIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const synthIntervalRef = useRef<any>(null);
 
   // Playback states
   const [isPlaying, setIsPlaying] = useState(false);

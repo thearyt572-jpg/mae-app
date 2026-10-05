@@ -1,62 +1,40 @@
 /**
  * ម៉ែ — by FlowErs
- * Short Maternal Onboarding Flow
+ * Streamlined Onboarding Modal (Step R3)
  *
- * Steps:
- * Step 1: តើម៉ែគួរហៅអ្នកថាបែបណា? (What should Mea call you?)
- * Step 2: តើអ្នកពពោះបានប៉ុន្មានសប្ដាហ៍ហើយ? (How far along are you?)
- * Step 3: ភាសាប្រើប្រាស់ (Language: Khmer default)
- * Step 4: ការទទួលការរំលឹកពីម៉ែ (Reminder frequency: Daily, Weekly, None)
- * Finish: «សូមស្វាគមន៍មកកាន់ ម៉ែ 🌸»
+ * Keeps Name, Language, and Notification preference.
+ * (Pregnancy week and due date are already accurately collected by the pre-login wizard).
  */
 
 import React, { useState } from 'react';
-import { ArrowRight, ArrowLeft, Check, Sparkles, Bell, Calendar, Globe, Heart } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Check, Sparkles, Bell, Globe, Heart, Send } from 'lucide-react';
 import { UserLanguage, NotificationPreference } from '../types';
 import { useApp } from '../context/AppContext';
+import { TelegramLink } from './TelegramLink';
 
 export const OnboardingModal: React.FC = () => {
   const { user, isOnboardingOpen, completeOnboarding, t } = useApp();
 
   const [step, setStep] = useState<number>(1);
   const [name, setName] = useState(user?.name || '');
-  const [calculationMode, setCalculationMode] = useState<'week' | 'dueDate'>('week');
-  const [pregnancyWeek, setPregnancyWeek] = useState<number>(9);
-  const [dueDate, setDueDate] = useState<string>('');
-  const [language, setLanguage] = useState<UserLanguage>('km');
+  const [language, setLanguage] = useState<UserLanguage>(user?.language || 'km');
   const [notificationPreference, setNotificationPreference] = useState<NotificationPreference>('weekly');
 
   if (!isOnboardingOpen) return null;
 
-  const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setDueDate(val);
-    if (val) {
-      const targetDate = new Date(val);
-      const now = new Date();
-      const diffTime = targetDate.getTime() - now.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      const remainingWeeks = diffDays / 7;
-      const calculatedWeek = Math.max(1, Math.min(40, Math.round(40 - remainingWeeks)));
-      if (!isNaN(calculatedWeek)) {
-        setPregnancyWeek(calculatedWeek);
-      }
-    }
-  };
-
   const handleNext = () => {
-    if (step < 4) {
+    if (step < 3) {
       setStep(step + 1);
     } else {
-      setStep(5);
+      setStep(4);
     }
   };
 
   const handleFinish = () => {
     completeOnboarding({
-      name: name.trim() || 'Mama',
-      pregnancy_week: pregnancyWeek,
-      due_date: dueDate || undefined,
+      name: name.trim() || user?.name || 'Mama',
+      pregnancy_week: user?.pregnancy_week || 9,
+      due_date: user?.due_date,
       language,
       notification_preference: notificationPreference,
     });
@@ -70,10 +48,10 @@ export const OnboardingModal: React.FC = () => {
     >
       <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-[#FAF9F5] border-t sm:border border-[#E5EADF] shadow-2xl overflow-hidden max-h-[92vh] sm:max-h-[85vh] flex flex-col animate-slide-up">
         {/* Step Indicator - Sticky */}
-        {step <= 4 && (
+        {step <= 3 && (
           <div className="p-4 sm:p-5 bg-white border-b border-[#E5EADF] flex items-center justify-between shrink-0">
             <div className="flex items-center gap-1.5">
-              {[1, 2, 3, 4].map((i) => (
+              {[1, 2, 3].map((i) => (
                 <span
                   key={i}
                   className={`w-6 h-1.5 rounded-full transition-all ${
@@ -87,7 +65,7 @@ export const OnboardingModal: React.FC = () => {
               ))}
             </div>
             <span className="text-xs font-mono font-medium text-[#5F6E60]">
-              {step} / 4
+              {step} / 3
             </span>
           </div>
         )}
@@ -131,82 +109,62 @@ export const OnboardingModal: React.FC = () => {
             </div>
           )}
 
-          {/* Step 2: Pregnancy Week or Due Date */}
+          {/* Step 2: Language Selection (Khmer Default) */}
           {step === 2 && (
             <div className="space-y-4">
               <div className="w-12 h-12 rounded-full bg-[#EBF1E4] border border-[#88A04D]/30 flex items-center justify-center text-xl">
-                🌱
+                🌐
               </div>
               <div className="space-y-1">
                 <h3 className="text-lg sm:text-xl font-serif font-bold text-[#233125]">
-                  {t('តើអ្នកពពោះបានប៉ុន្មានសប្ដាហ៍ហើយ?', 'How far along are you?')}
+                  {t('ភាសាដែលអ្នកចង់ប្រើ', 'Choose your language')}
                 </h3>
                 <p className="text-xs sm:text-sm text-[#5F6E60]">
-                  {t('ដើម្បីឱ្យម៉ែអាចរៀបចំសារនិងការណែនាំបានត្រឹមត្រូវ។', 'So Mea can share the right guidance at each stage.')}
+                  {t('អ្នកអាចប្តូរភាសាបានគ្រប់ពេល។', 'You can change this at any time.')}
                 </p>
               </div>
 
-              {/* Mode switch */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-[#FAF9F5] rounded-xl border border-[#E5EADF]">
+              <div className="space-y-2.5">
                 <button
                   type="button"
-                  onClick={() => setCalculationMode('week')}
-                  className={`min-h-[40px] py-2 text-xs font-semibold rounded-lg transition-colors ${
-                    calculationMode === 'week'
-                      ? 'bg-white text-[#233125] shadow-2xs'
-                      : 'text-[#5F6E60]'
+                  onClick={() => setLanguage('km')}
+                  className={`w-full p-4 rounded-2xl border text-left flex items-center justify-between transition-all ${
+                    language === 'km'
+                      ? 'bg-white border-[#88A04D] ring-2 ring-[#88A04D]/20 shadow-xs'
+                      : 'bg-[#FAF9F5] border-[#E5EADF] hover:bg-white'
                   }`}
                 >
-                  {t('ដឹងចំនួនសប្ដាហ៍', 'By Week')}
+                  <div>
+                    <span className="text-base font-bold text-[#233125] block font-serif">
+                      ភាសាខ្មែរ (Khmer)
+                    </span>
+                    <span className="text-xs text-[#5F6E60]">
+                      ភាសាចម្បងសម្រាប់អ្នកម្តាយកម្ពុជា
+                    </span>
+                  </div>
+                  {language === 'km' && <Check className="w-5 h-5 text-[#88A04D]" />}
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => setCalculationMode('dueDate')}
-                  className={`min-h-[40px] py-2 text-xs font-semibold rounded-lg transition-colors ${
-                    calculationMode === 'dueDate'
-                      ? 'bg-white text-[#233125] shadow-2xs'
-                      : 'text-[#5F6E60]'
+                  onClick={() => setLanguage('en')}
+                  className={`w-full p-4 rounded-2xl border text-left flex items-center justify-between transition-all ${
+                    language === 'en'
+                      ? 'bg-white border-[#88A04D] ring-2 ring-[#88A04D]/20 shadow-xs'
+                      : 'bg-[#FAF9F5] border-[#E5EADF] hover:bg-white'
                   }`}
                 >
-                  {t('ដឹងថ្ងៃសម្រាល', 'By Due Date')}
+                  <div>
+                    <span className="text-base font-bold text-[#233125] block">
+                      English
+                    </span>
+                    <span className="text-xs text-[#5F6E60]">
+                      English guidance & references
+                    </span>
+                  </div>
+                  {language === 'en' && <Check className="w-5 h-5 text-[#88A04D]" />}
                 </button>
               </div>
-
-              {calculationMode === 'week' ? (
-                <div className="space-y-2">
-                  <label className="block text-xs font-medium text-[#5F6E60]">
-                    {t('ជ្រើសរើសសប្ដាហ៍ពពោះបច្ចុប្បន្ន', 'Select current week')}:
-                  </label>
-                  <select
-                    value={pregnancyWeek}
-                    onChange={(e) => setPregnancyWeek(parseInt(e.target.value, 10))}
-                    className="w-full min-h-[48px] px-4 py-3 rounded-2xl bg-white border border-[#E5EADF] text-base text-[#233125] font-semibold focus:border-[#88A04D]"
-                  >
-                    {Array.from({ length: 40 }, (_, i) => i + 1).map((w) => (
-                      <option key={w} value={w}>
-                        {t(`សប្ដាហ៍ទី ${w} (ខែទី ${Math.min(9, Math.ceil(w / 4.4))})`, `Week ${w}`)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <label className="block text-xs font-medium text-[#5F6E60]">
-                    {t('ថ្ងៃសម្រាលប៉ាន់ស្មាន (តាមគ្រូពេទ្យប្រាប់)', 'Estimated due date')}:
-                  </label>
-                  <input
-                    type="date"
-                    value={dueDate}
-                    onChange={handleDueDateChange}
-                    className="w-full min-h-[48px] px-4 py-3 rounded-2xl bg-white border border-[#E5EADF] text-base text-[#233125] focus:border-[#88A04D]"
-                  />
-                  {dueDate && (
-                    <p className="text-xs text-[#5C7034] font-medium">
-                      {t(`ត្រូវនឹងសប្ដាហ៍ទី ${pregnancyWeek}`, `Matches approx. Week ${pregnancyWeek}`)}
-                    </p>
-                  )}
-                </div>
-              )}
 
               <div className="flex items-center gap-3 pt-2">
                 <button
@@ -229,53 +187,73 @@ export const OnboardingModal: React.FC = () => {
             </div>
           )}
 
-          {/* Step 3: Language Selection (Khmer Default) */}
+          {/* Step 3: Notification Preference */}
           {step === 3 && (
             <div className="space-y-4">
               <div className="w-12 h-12 rounded-full bg-[#EBF1E4] border border-[#88A04D]/30 flex items-center justify-center text-xl">
-                🌐
+                🔔
               </div>
               <div className="space-y-1">
                 <h3 className="text-lg sm:text-xl font-serif font-bold text-[#233125]">
-                  {t('ភាសាដែលអ្នកចង់ប្រើ', 'Choose your language')}
+                  {t('ការទទួលការរំលឹកពីម៉ែ', 'Receiving reminders')}
                 </h3>
                 <p className="text-xs sm:text-sm text-[#5F6E60]">
-                  {t('អ្នកអាចប្តូរភាសាបានគ្រប់ពេល។', 'You can change this at any time.')}
+                  {t('ជ្រើសរើសភាពញឹកញាប់នៃការរំលឹកដែលធ្វើឱ្យអ្នកមានអារម្មណ៍ស្រួល។', 'Choose how often you would like to be gently notified.')}
                 </p>
               </div>
 
               <div className="space-y-2.5">
-                <button
-                  type="button"
-                  onClick={() => setLanguage('km')}
-                  className={`w-full min-h-[52px] p-4 rounded-2xl border text-left flex items-center justify-between transition-all ${
-                    language === 'km'
-                      ? 'bg-[#EBF1E4] border-[#88A04D] shadow-2xs'
-                      : 'bg-white border-[#E5EADF]'
-                  }`}
-                >
-                  <div>
-                    <div className="text-sm font-bold text-[#233125]">ភាសាខ្មែរ (Khmer)</div>
-                    <div className="text-xs text-[#5C7034]">ភាសាដើម និងសំឡេងម៉ែជាភាសាខ្មែរ</div>
-                  </div>
-                  {language === 'km' && <Check className="w-5 h-5 text-[#88A04D]" />}
-                </button>
+                {[
+                  {
+                    id: 'weekly',
+                    titleKh: 'ប្រចាំសប្ដាហ៍ (ណែនាំ)',
+                    titleEn: 'Weekly (Recommended)',
+                    descKh: 'ទទួលសារលើកទឹកចិត្ត និងការវិវឌ្ឍន៍ ១ ដងក្នុងមួយសប្ដាហ៍',
+                    descEn: 'One gentle update and encouraging note each week',
+                  },
+                  {
+                    id: 'daily',
+                    titleKh: 'ប្រចាំថ្ងៃ',
+                    titleEn: 'Daily',
+                    descKh: 'ការរំលឹកសុខភាពតូចមួយរាល់ព្រឹក',
+                    descEn: 'A short morning health reminder',
+                  },
+                  {
+                    id: 'none',
+                    titleKh: 'មិនបាច់រំលឹក',
+                    titleEn: 'None',
+                    descKh: 'ខ្ញុំនឹងចូលមើលដោយខ្លួនឯងនៅពេលទំនេរ',
+                    descEn: "I'll open the app whenever I feel like it",
+                  },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setNotificationPreference(opt.id as NotificationPreference)}
+                    className={`w-full p-4 rounded-2xl border text-left flex items-start justify-between transition-all ${
+                      notificationPreference === opt.id
+                        ? 'bg-white border-[#88A04D] ring-2 ring-[#88A04D]/20 shadow-xs'
+                        : 'bg-[#FAF9F5] border-[#E5EADF] hover:bg-white'
+                    }`}
+                  >
+                    <div>
+                      <span className="text-sm font-bold text-[#233125] block">
+                        {t(opt.titleKh, opt.titleEn)}
+                      </span>
+                      <span className="text-xs text-[#5F6E60] mt-0.5 block">
+                        {t(opt.descKh, opt.descEn)}
+                      </span>
+                    </div>
+                    {notificationPreference === opt.id && (
+                      <Check className="w-5 h-5 text-[#88A04D] shrink-0 ml-2 mt-0.5" />
+                    )}
+                  </button>
+                ))}
+              </div>
 
-                <button
-                  type="button"
-                  onClick={() => setLanguage('en')}
-                  className={`w-full min-h-[52px] p-4 rounded-2xl border text-left flex items-center justify-between transition-all ${
-                    language === 'en'
-                      ? 'bg-[#EBF1E4] border-[#88A04D] shadow-2xs'
-                      : 'bg-white border-[#E5EADF]'
-                  }`}
-                >
-                  <div>
-                    <div className="text-sm font-bold text-[#233125]">English</div>
-                    <div className="text-xs text-[#5F6E60]">Secondary English interface</div>
-                  </div>
-                  {language === 'en' && <Check className="w-5 h-5 text-[#88A04D]" />}
-                </button>
+              {/* Optional Telegram linking */}
+              <div className="pt-2">
+                <TelegramLink />
               </div>
 
               <div className="flex items-center gap-3 pt-2">
@@ -299,105 +277,57 @@ export const OnboardingModal: React.FC = () => {
             </div>
           )}
 
-          {/* Step 4: Notification / Reminder Preference */}
+          {/* Finish Screen: Welcome */}
           {step === 4 && (
-            <div className="space-y-4">
-              <div className="w-12 h-12 rounded-full bg-[#EBF1E4] border border-[#88A04D]/30 flex items-center justify-center text-xl">
-                🔔
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-lg sm:text-xl font-serif font-bold text-[#233125]">
-                  {t('ការទទួលការរំលឹកពីម៉ែ', 'Reminder frequency')}
-                </h3>
-                <p className="text-xs sm:text-sm text-[#5F6E60]">
-                  {t('ជ្រើសរើសរបៀបដែលអ្នកចង់ទទួលការរំលឹកសុខភាព។', 'Choose how you would like gentle reminders.')}
-                </p>
+            <div className="text-center space-y-5 py-4 animate-fade-in">
+              <div className="w-20 h-20 rounded-full bg-[#EBF1E4] border-2 border-[#88A04D]/40 flex items-center justify-center text-4xl mx-auto shadow-sm">
+                🌸
               </div>
 
               <div className="space-y-2">
-                {[
-                  {
-                    id: 'weekly' as const,
-                    labelKh: 'រៀងរាល់សប្ដាហ៍ (Weekly)',
-                    descKh: 'ទទួលសាររំលឹកមួយដងក្នុងមួយសប្ដាហ៍',
-                  },
-                  {
-                    id: 'daily' as const,
-                    labelKh: 'រៀងរាល់ថ្ងៃ (Daily)',
-                    descKh: 'ទទួលការរំលឹកញ៉ាំទឹក សម្រាក និងថែរក្សាខ្លួនប្រចាំថ្ងៃ',
-                  },
-                  {
-                    id: 'none' as const,
-                    labelKh: 'មិនទទួល (None)',
-                    descKh: 'ចូលមកអាននិងស្តាប់តាមការចង់បានរបស់អ្នក',
-                  },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setNotificationPreference(item.id)}
-                    className={`w-full min-h-[50px] p-3.5 rounded-2xl border text-left flex items-start justify-between transition-all ${
-                      notificationPreference === item.id
-                        ? 'bg-[#EBF1E4] border-[#88A04D] shadow-2xs'
-                        : 'bg-white border-[#E5EADF]'
-                    }`}
-                  >
-                    <div>
-                      <div className="text-xs sm:text-sm font-bold text-[#233125]">{item.labelKh}</div>
-                      <div className="text-[11px] text-[#5F6E60] mt-0.5">{item.descKh}</div>
-                    </div>
-                    {notificationPreference === item.id && <Check className="w-4 h-4 text-[#88A04D] shrink-0 mt-0.5" />}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setStep(3)}
-                  className="min-h-[48px] min-w-[48px] px-4 py-3 rounded-full border border-[#E5EADF] text-xs font-semibold text-[#5F6E60] hover:bg-white flex items-center justify-center"
-                  aria-label="Back"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="flex-1 min-h-[48px] py-3 rounded-full bg-[#88A04D] hover:bg-[#5C7034] active:scale-[0.98] text-white text-sm font-semibold shadow-xs transition-all flex items-center justify-center gap-2"
-                >
-                  <span>{t('រួចរាល់', 'Complete')}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 5: Welcome Complete */}
-          {step === 5 && (
-            <div className="space-y-5 text-center py-2">
-              <div className="w-16 h-16 rounded-full bg-[#EBF1E4] border border-[#88A04D]/30 flex items-center justify-center text-3xl mx-auto shadow-2xs">
-                💐
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#233125]">
-                  {t(`សូមស្វាគមន៍មកកាន់ «ម៉ែ», ${name} 🌸`, `Welcome to ម៉ែ, ${name} 🌸`)}
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white border border-[#88A04D]/30 text-xs font-semibold text-[#5C7034] shadow-2xs">
+                  <Sparkles className="w-3.5 h-3.5 text-[#88A04D]" />
+                  <span>{t('ការរៀបចំបានជោគជ័យ', 'Setup Complete')}</span>
+                </span>
+                <h3 className="text-2xl font-serif font-bold text-[#233125]">
+                  {t(`សូមស្វាគមន៍មកកាន់ ម៉ែ, ${name} 🌸`, `Welcome to Mea, ${name} 🌸`)}
                 </h3>
-                <p className="text-xs sm:text-sm text-[#233125]/85 italic leading-relaxed max-w-sm mx-auto">
-                  “{t('ម៉ែនៅទីនេះចាំមើលថែអ្នកជានិច្ច។ ធ្វើចិត្តឱ្យត្រជាក់ ញញឹមឱ្យច្រើនណា។', 'Hey, do not worry. Mea is right here with you. Keep a peaceful heart and take gentle care.')}”
+                <p className="text-xs sm:text-sm text-[#5F6E60] max-w-xs mx-auto leading-relaxed">
+                  {t(
+                    'ម៉ែបានរៀបចំព័ត៌មាន និងការណែនាំសុខភាពដែលសមស្របនឹងសប្ដាហ៍របស់អ្នករួចរាល់ហើយ។',
+                    'Mea has personalized gentle guidance and trusted articles for your stage.'
+                  )}
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#E5EADF] text-xs text-[#5F6E60]">
-                {t(`អ្នកកំពុងស្ថិតនៅសប្ដាហ៍ទី ${pregnancyWeek} (ខែទី ${Math.min(9, Math.ceil(pregnancyWeek / 4.4))})`, `Current stage: Week ${pregnancyWeek}`)}
+              <div className="p-4 rounded-2xl bg-white border border-[#E5EADF] text-left text-xs space-y-2 max-w-xs mx-auto">
+                <div className="flex items-center justify-between text-[#5F6E60]">
+                  <span>{t('សប្ដាហ៍ពពោះ៖', 'Pregnancy Week:')}</span>
+                  <span className="font-semibold text-[#233125]">
+                    {t(`សប្ដាហ៍ទី ${user?.pregnancy_week || 9}`, `Week ${user?.pregnancy_week || 9}`)}
+                  </span>
+                </div>
+                {user?.due_date && (
+                  <div className="flex items-center justify-between text-[#5F6E60]">
+                    <span>{t('ថ្ងៃសម្រាល៖', 'Due Date:')}</span>
+                    <span className="font-semibold text-[#233125]">{user.due_date}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-[#5F6E60]">
+                  <span>{t('ភាសា៖', 'Language:')}</span>
+                  <span className="font-semibold text-[#233125]">
+                    {language === 'km' ? 'ភាសាខ្មែរ' : 'English'}
+                  </span>
+                </div>
               </div>
 
               <button
                 type="button"
                 onClick={handleFinish}
-                className="w-full min-h-[48px] py-3.5 rounded-full bg-[#88A04D] hover:bg-[#5C7034] active:scale-[0.98] text-white text-sm font-bold shadow-xs transition-all"
+                className="w-full min-h-[48px] py-3.5 rounded-full bg-[#88A04D] hover:bg-[#5C7034] active:scale-[0.98] text-white text-sm font-semibold shadow-md transition-all flex items-center justify-center gap-2"
               >
-                {t('ចាប់ផ្ដើមដំណើរ 🌸', 'Enter Your Journey 🌸')}
+                <span>{t('ចាប់ផ្តើមដំណើរកំដរ 🌸', 'Enter Companion 🌸')}</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           )}
