@@ -29,8 +29,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { FlowerVisual } from '../components/FlowerVisual';
-import { FruitSize } from '../components/FruitSize';
+import { BabyGrowthCard } from '../components/BabyGrowthCard';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { TopicCard } from '../components/TopicCard';
 import { ResourceCard } from '../components/ResourceCard';
@@ -316,18 +315,9 @@ export const JourneyScreen: React.FC = () => {
             </p>
           </div>
 
-          {/* Visuals: Botanical Flower + Fruit Size Comparison for viewedWeek */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0">
-            <div className="flex flex-col items-center">
-              <FlowerVisual stage={activeMessage.flowerStage} size="lg" />
-              <span className="text-[11px] font-semibold text-[#5F6E60] mt-1.5">
-                {activeMessage.flowerStage.percent}% {t('នៃការលូតលាស់', 'Growth')}
-              </span>
-            </div>
-
-            <div className="w-full sm:w-auto">
-              <FruitSize week={viewedWeek} />
-            </div>
+          {/* Visuals: Unified Baby Growth Card (Flower Stage + Fruit Size) for viewedWeek */}
+          <div className="w-full sm:w-[320px] md:w-[340px] shrink-0">
+            <BabyGrowthCard week={viewedWeek} showDescription={false} />
           </div>
         </div>
       </section>
