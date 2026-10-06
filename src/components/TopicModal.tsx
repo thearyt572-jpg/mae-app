@@ -20,13 +20,26 @@ interface TopicModalProps {
 }
 
 export const TopicModal: React.FC<TopicModalProps> = ({ topic, onClose }) => {
-  const { getResourceById, setSelectedResource, logEvent, currentWeek, t } = useApp();
+  const {
+    getResourceById,
+    setSelectedResource,
+    canOpenSummary,
+    setIsUpgradeModalOpen,
+    logEvent,
+    currentWeek,
+    t,
+  } = useApp();
 
   const linkedResources = topic.resourceIds
     .map((id) => getResourceById(id))
     .filter(Boolean) as PregnancyResource[];
 
   const handleResourceSummaryClick = (res: PregnancyResource) => {
+    const check = canOpenSummary(res);
+    if (!check.allowed) {
+      setIsUpgradeModalOpen(true, 'daily_limit');
+      return;
+    }
     setSelectedResource(res);
     logEvent('resource_opened', res.id, currentWeek, {
       from: 'topic_modal',

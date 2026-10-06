@@ -38,6 +38,7 @@ const AppContent: React.FC = () => {
     toastAction,
     isUpgradeModalOpen,
     setIsUpgradeModalOpen,
+    upgradeModalSource,
   } = useApp();
 
   // Screen selection
@@ -141,6 +142,7 @@ const AppContent: React.FC = () => {
       <UpgradeModal
         isOpen={isUpgradeModalOpen}
         onClose={() => setIsUpgradeModalOpen(false)}
+        source={upgradeModalSource}
       />
     </div>
   );

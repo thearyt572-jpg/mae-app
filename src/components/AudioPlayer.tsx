@@ -428,16 +428,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             {isMuted ? <VolumeX className="w-4 h-4 text-red-500" /> : <Volume2 className="w-4 h-4" />}
           </button>
 
-          {/* Add to My Plan Button (Premium feature) */}
+          {/* Add to My Plan Button (Preview for free, full edit for premium) */}
           <button
             type="button"
-            onClick={() => {
-              if (!isPremium) {
-                setIsUpgradeModalOpen(true);
-                return;
-              }
-              setIsPlanSheetOpen(true);
-            }}
+            onClick={() => setIsPlanSheetOpen(true)}
             className="min-h-[44px] inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-[#88A04D]/35 bg-white hover:bg-[#F0F4E8] text-xs font-semibold text-[#5C7034] transition-colors shadow-2xs"
             title={t('បញ្ចូលក្នុងគម្រោង', 'Add to My Plan')}
           >

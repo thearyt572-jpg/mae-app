@@ -66,6 +66,7 @@ export interface PregnancyResource {
   importantNoteKh?: string;
   status: ResourceStatus;
   planSuggestions?: PlanSuggestion[];
+  is_safety_critical?: boolean;
   createdAt?: string;
   updatedAt?: string;
 

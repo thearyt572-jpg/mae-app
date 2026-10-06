@@ -17,11 +17,26 @@ interface ResourceCardProps {
 }
 
 export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onOpenDetail }) => {
-  const { setSelectedResource, logEvent, currentWeek, isResourceRead, toggleResourceRead, t } = useApp();
+  const {
+    setSelectedResource,
+    canOpenSummary,
+    setIsUpgradeModalOpen,
+    logEvent,
+    currentWeek,
+    isResourceRead,
+    toggleResourceRead,
+    t,
+  } = useApp();
 
   const isRead = isResourceRead(resource.id);
 
   const handleCardClick = () => {
+    const check = canOpenSummary(resource);
+    if (!check.allowed) {
+      setIsUpgradeModalOpen(true, 'daily_limit');
+      return;
+    }
+
     if (onOpenDetail) {
       onOpenDetail(resource);
     } else {

@@ -41,6 +41,16 @@ import {
 } from '../data/monthlyMessages';
 import { supabase } from '../lib/supabase';
 import { getSavedPreLoginAnswers, clearPreLoginAnswers } from '../components/PreLoginWizard';
+import {
+  FREE_LIMITS,
+  canOpenSummary as evaluateCanOpenSummary,
+  canUsePlan as evaluateCanUsePlan,
+  canUseReminders as evaluateCanUseReminders,
+  getCambodiaDateStr,
+  SummaryAccessResult,
+  FeatureAccessResult,
+  ResourceSummaryItem,
+} from '../lib/entitlements';
 
 const STORAGE_KEY_USER = 'mae_user_session';
 const STORAGE_KEY_RESOURCES = 'mae_resources_catalog_v3';
@@ -143,8 +153,16 @@ interface AppContextType {
 
   // Premium & Upgrade Modal
   isUpgradeModalOpen: boolean;
-  setIsUpgradeModalOpen: (open: boolean) => void;
+  setIsUpgradeModalOpen: (open: boolean, source?: string) => void;
+  upgradeModalSource: string;
   isPremium: boolean;
+  canOpenSummary: (resource: ResourceSummaryItem) => SummaryAccessResult;
+  canUsePlan: () => FeatureAccessResult;
+  canUseReminders: () => FeatureAccessResult;
+  trackOpenedSummary: (resource: ResourceSummaryItem) => Promise<void>;
+  todayOpenedSummaries: string[];
+  dailySummariesLimit: number;
+  dailySummariesRemaining: number;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -260,7 +278,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isContentEntryOpen, setIsContentEntryOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<PregnancyResource | null>(null);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpenState] = useState(false);
+  const [upgradeModalSource, setUpgradeModalSource] = useState<string>('plan_feature');
+
+  const setIsUpgradeModalOpen = (open: boolean, source?: string) => {
+    if (source) setUpgradeModalSource(source);
+    setIsUpgradeModalOpenState(open);
+  };
+
+  // Entitlements: Daily usage tracking (reset at midnight Asia/Phnom_Penh)
+  const [todayOpenedSummaries, setTodayOpenedSummaries] = useState<string[]>(() => {
+    try {
+      const todayStr = getCambodiaDateStr();
+      const stored = localStorage.getItem('mae_daily_usage_' + todayStr);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastAction, setToastAction] = useState<{ label: string; onClick: () => void } | null>(null);
   const toastTimerRef = React.useRef<any>(null);
@@ -340,14 +375,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
   }, []);
 
-  // If active session exists, refresh profile from `users` table so manual `is_premium` changes are picked up immediately.
+  // Entitlements & Session Sync:
+  // - Premium status comes from the `entitlements` table (is_premium). No row means not premium.
+  // - Count today's opened summaries from `daily_usage` table (or localStorage for guests).
   useEffect(() => {
+    const loadTodayDailyUsage = async (userId: string) => {
+      const todayStr = getCambodiaDateStr();
+      try {
+        const { data: usageRow, error: usageError } = await supabase
+          .from('daily_usage')
+          .select('summary_ids')
+          .eq('user_id', userId)
+          .eq('date', todayStr)
+          .maybeSingle();
+
+        if (!usageError && usageRow && Array.isArray(usageRow.summary_ids)) {
+          setTodayOpenedSummaries(usageRow.summary_ids);
+          try {
+            localStorage.setItem('mae_daily_usage_' + todayStr, JSON.stringify(usageRow.summary_ids));
+          } catch {}
+          return;
+        }
+      } catch (err) {
+        console.warn('Could not load daily usage from database', err);
+      }
+
+      // Fallback from localStorage
+      try {
+        const local = localStorage.getItem('mae_daily_usage_' + todayStr);
+        if (local) {
+          setTodayOpenedSummaries(JSON.parse(local));
+        }
+      } catch {}
+    };
+
     const refreshProfile = async (userId: string, userEmail?: string) => {
+      // 1. Fetch user row
       const { data: row } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
+
+      // 2. Premium status comes from the entitlements table (is_premium). No row means not premium.
+      let isUserPremium = false;
+      try {
+        const { data: entRow, error: entError } = await supabase
+          .from('entitlements')
+          .select('is_premium')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (!entError && entRow) {
+          isUserPremium = Boolean(entRow.is_premium);
+        } else if (row?.is_premium) {
+          // Backward compatibility fallback if manual switch was placed in users table
+          isUserPremium = true;
+        }
+      } catch {
+        isUserPremium = Boolean(row?.is_premium);
+      }
 
       if (row) {
         setUser((prev) =>
@@ -355,10 +442,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ? {
                 ...prev,
                 name: row.name || prev.name,
-                is_premium: row.is_premium ?? false,
+                is_premium: isUserPremium,
                 pregnancy_week: row.pregnancy_week || prev.pregnancy_week,
                 due_date: row.due_date || prev.due_date,
-                tier: row.is_premium ? 'premium' : prev.tier || 'free',
+                tier: isUserPremium ? 'premium' : 'free',
               }
             : {
                 id: userId,
@@ -373,18 +460,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 is_first_pregnancy: row.is_first_pregnancy !== undefined ? row.is_first_pregnancy : true,
                 children_count: row.children_count || undefined,
                 notification_preference: row.notification_preference || 'weekly',
-                is_premium: row.is_premium ?? false,
-                tier: row.is_premium ? 'premium' : row.tier || 'free',
+                is_premium: isUserPremium,
+                tier: isUserPremium ? 'premium' : 'free',
                 premium_until: row.premium_until || undefined,
                 created_at: row.created_at || new Date().toISOString(),
               }
         );
       }
+
+      // Load today's opened summaries from daily_usage table
+      loadTodayDailyUsage(userId);
     };
 
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) {
         setUser((prev) => (prev ? null : prev));
+        // Guest user: load from localStorage for today
+        const todayStr = getCambodiaDateStr();
+        try {
+          const local = localStorage.getItem('mae_daily_usage_' + todayStr);
+          if (local) {
+            setTodayOpenedSummaries(JSON.parse(local));
+          }
+        } catch {}
       } else {
         refreshProfile(data.session.user.id, data.session.user.email);
       }
@@ -599,6 +697,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const { data: row } = await supabase.from('users').select('*').eq('id', data.user.id).maybeSingle();
 
+    // Query entitlements table (no row means not premium)
+    let isUserPremium = false;
+    try {
+      const { data: entRow, error: entError } = await supabase
+        .from('entitlements')
+        .select('is_premium')
+        .eq('user_id', data.user.id)
+        .maybeSingle();
+
+      if (!entError && entRow) {
+        isUserPremium = Boolean(entRow.is_premium);
+      } else if (row?.is_premium) {
+        isUserPremium = true;
+      }
+    } catch {
+      isUserPremium = Boolean(row?.is_premium);
+    }
+
     const returningUser: User = {
       id: data.user.id,
       name: row?.name || cleanEmail.split('@')[0],
@@ -612,11 +728,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       is_first_pregnancy: row?.is_first_pregnancy !== undefined ? row.is_first_pregnancy : true,
       children_count: row?.children_count || undefined,
       notification_preference: row?.notification_preference || 'weekly',
-      is_premium: row?.is_premium ?? false,
-      tier: (row?.is_premium ? 'premium' : row?.tier) || 'free',
+      is_premium: isUserPremium,
+      tier: isUserPremium ? 'premium' : 'free',
       premium_until: row?.premium_until || undefined,
       created_at: row?.created_at || new Date().toISOString(),
     };
+
+    // Load today's opened summaries from daily_usage
+    const todayStr = getCambodiaDateStr();
+    try {
+      const { data: usageRow } = await supabase
+        .from('daily_usage')
+        .select('summary_ids')
+        .eq('user_id', data.user.id)
+        .eq('date', todayStr)
+        .maybeSingle();
+
+      if (usageRow && Array.isArray(usageRow.summary_ids)) {
+        setTodayOpenedSummaries(usageRow.summary_ids);
+        try {
+          localStorage.setItem('mae_daily_usage_' + todayStr, JSON.stringify(usageRow.summary_ids));
+        } catch {}
+      }
+    } catch (err) {
+      console.warn('Could not load daily usage on login', err);
+    }
 
     setUser(returningUser);
     if (returningUser.pregnancy_week) {
@@ -873,6 +1009,60 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Entitlement Rules & Evaluations
+  const isUserPremium = !!user?.is_premium;
+
+  const checkCanOpenSummary = (resource: ResourceSummaryItem): SummaryAccessResult => {
+    return evaluateCanOpenSummary(resource, isUserPremium, todayOpenedSummaries);
+  };
+
+  const checkCanUsePlan = (): FeatureAccessResult => {
+    return evaluateCanUsePlan(isUserPremium);
+  };
+
+  const checkCanUseReminders = (): FeatureAccessResult => {
+    return evaluateCanUseReminders(isUserPremium);
+  };
+
+  const trackOpenedSummary = async (resource: ResourceSummaryItem) => {
+    // Safety-critical resources are always 100% free and NEVER counted against quota
+    if (resource.is_safety_critical) return;
+
+    const todayStr = getCambodiaDateStr();
+    setTodayOpenedSummaries((prev) => {
+      // Re-opening the same summary the same day does not count again
+      if (prev.includes(resource.id)) return prev;
+      const next = [...prev, resource.id];
+
+      // Save to localStorage
+      try {
+        localStorage.setItem('mae_daily_usage_' + todayStr, JSON.stringify(next));
+      } catch {}
+
+      // Save to Supabase daily_usage table if logged in
+      if (user?.id) {
+        supabase
+          .from('daily_usage')
+          .upsert({
+            user_id: user.id,
+            date: todayStr,
+            summary_ids: next,
+            updated_at: new Date().toISOString(),
+          })
+          .then(({ error }) => {
+            if (error) console.warn('Could not save daily usage to database', error.message);
+          });
+      }
+
+      return next;
+    });
+  };
+
+  const dailySummariesLimit = FREE_LIMITS.dailySummaries;
+  const dailySummariesRemaining = isUserPremium || dailySummariesLimit <= 0
+    ? Infinity
+    : Math.max(0, dailySummariesLimit - todayOpenedSummaries.length);
+
   const value: AppContextType = {
     language,
     setLanguage,
@@ -931,7 +1121,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast,
     isUpgradeModalOpen,
     setIsUpgradeModalOpen,
-    isPremium: !!user?.is_premium,
+    upgradeModalSource,
+    isPremium: isUserPremium,
+    canOpenSummary: checkCanOpenSummary,
+    canUsePlan: checkCanUsePlan,
+    canUseReminders: checkCanUseReminders,
+    trackOpenedSummary,
+    todayOpenedSummaries,
+    dailySummariesLimit,
+    dailySummariesRemaining,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

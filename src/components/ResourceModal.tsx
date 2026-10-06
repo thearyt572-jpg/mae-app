@@ -38,6 +38,8 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({ resource, onClose 
     markResourceAsRead,
     isPremium,
     setIsUpgradeModalOpen,
+    canOpenSummary,
+    trackOpenedSummary,
     t,
   } = useApp();
 
@@ -80,8 +82,17 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({ resource, onClose 
   // Threshold used: 10s if fits on screen without scroll, else requiredSeconds
   const effectiveTimeThreshold = isScrollable ? requiredSeconds : 10;
 
-  // 1. Log resource_opened on open
+  // 1. Entitlement check & log resource_opened on open
   useEffect(() => {
+    const check = canOpenSummary(resource);
+    if (!check.allowed) {
+      onClose();
+      setIsUpgradeModalOpen(true, 'daily_limit');
+      return;
+    }
+
+    trackOpenedSummary(resource);
+
     logEvent('resource_opened', resource.id, currentWeek, {
       title: resource.titleKh || resource.title,
       source: resource.sourceName,
@@ -236,6 +247,12 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({ resource, onClose 
     resource.summaryEn || resource.summary || ''
   );
 
+  // If blocked by daily limit, render null while modal closes
+  const accessCheck = canOpenSummary(resource);
+  if (!accessCheck.allowed) {
+    return null;
+  }
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs overflow-y-auto"
@@ -389,16 +406,10 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({ resource, onClose 
               </span>
             </button>
 
-            {/* Add to My Plan Button (Premium feature) */}
+            {/* Add to My Plan Button (Preview for free, full edit for premium) */}
             <button
               type="button"
-              onClick={() => {
-                if (!isPremium) {
-                  setIsUpgradeModalOpen(true);
-                  return;
-                }
-                setIsPlanSheetOpen(true);
-              }}
+              onClick={() => setIsPlanSheetOpen(true)}
               className="min-h-[44px] inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-full border border-[#88A04D]/40 bg-[#F0F4E8] text-[#5C7034] hover:bg-[#EBF1E4] transition-all"
             >
               <CalendarCheck className="w-4 h-4 text-[#88A04D]" />
