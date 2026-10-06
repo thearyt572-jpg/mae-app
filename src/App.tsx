@@ -34,6 +34,7 @@ const AppContent: React.FC = () => {
     setIsContentEntryOpen,
     editingResource,
     toastMessage,
+    toastAction,
   } = useApp();
 
   // Screen selection
@@ -68,12 +69,22 @@ const AppContent: React.FC = () => {
       {toastMessage && (
         <aside
           aria-label="Notification alert"
-          className="fixed top-[max(1.25rem,env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-50 max-w-sm sm:max-w-md w-[92%] px-4 py-3 rounded-2xl bg-[#233125] text-white text-xs sm:text-sm font-medium shadow-xl border border-[#88A04D]/40 flex items-center justify-between gap-3 animate-fade-in"
+          className="fixed top-[max(1.25rem,env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-[70] max-w-sm sm:max-w-md w-[92%] px-4 py-3 rounded-2xl bg-[#233125] text-white text-xs sm:text-sm font-medium shadow-xl border border-[#88A04D]/40 flex items-center justify-between gap-3 animate-fade-in"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <span>🌸</span>
-            <span>{toastMessage}</span>
+            <span className="truncate">{toastMessage}</span>
           </div>
+
+          {toastAction && (
+            <button
+              type="button"
+              onClick={toastAction.onClick}
+              className="px-3 py-1.5 rounded-xl bg-[#88A04D] hover:bg-[#5C7034] text-white text-xs font-bold transition-all shrink-0 active:scale-95 shadow-2xs cursor-pointer"
+            >
+              {toastAction.label}
+            </button>
+          )}
         </aside>
       )}
 

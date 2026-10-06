@@ -98,7 +98,7 @@ interface AppContextType {
 
   // Reading Progress Tracker
   readResourceIds: string[];
-  markResourceAsRead: (id: string) => void;
+  markResourceAsRead: (id: string, options?: { showUndoToast?: boolean }) => void;
   toggleResourceRead: (id: string) => void;
   isResourceRead: (id: string) => boolean;
   resetReadProgress: () => void;
@@ -138,7 +138,8 @@ interface AppContextType {
 
   // Toast Notification
   toastMessage: string | null;
-  showToast: (msg: string) => void;
+  toastAction: { label: string; onClick: () => void } | null;
+  showToast: (msg: string, action?: { label: string; onClick: () => void }) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -255,6 +256,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [editingResource, setEditingResource] = useState<PregnancyResource | null>(null);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastAction, setToastAction] = useState<{ label: string; onClick: () => void } | null>(null);
+  const toastTimerRef = React.useRef<any>(null);
 
   const setActiveTab = (tab: TabKey) => {
     const target = tab === 'resources' ? 'explore' : tab;
@@ -385,12 +388,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
   }, [user?.id]);
 
-  // Toast notification helper with auto-clear
-  const showToast = (msg: string) => {
+  // Toast notification helper with auto-clear and optional undo action
+  const showToast = (msg: string, action?: { label: string; onClick: () => void }) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToastMessage(msg);
-    setTimeout(() => {
+    setToastAction(action || null);
+    toastTimerRef.current = setTimeout(() => {
       setToastMessage(null);
-    }, 3800);
+      setToastAction(null);
+    }, action ? 6000 : 3800);
   };
 
   // Data & cookie consent. Declining also wipes anything already recorded locally.
@@ -667,7 +673,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return resources.find((r) => r.id === id);
   };
 
-  const markResourceAsRead = (id: string) => {
+  const markResourceAsRead = (id: string, options?: { showUndoToast?: boolean }) => {
     if (!readResourceIds.includes(id)) {
       setReadResourceIds((prev) => [...prev, id]);
       logEvent('resource_marked_read', id, currentWeek);
@@ -679,7 +685,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (error) console.warn('Could not save read status to database', error.message);
           });
       }
-      showToast(t('អ្នកបានអានអត្ថបទនេះរួចរាល់ហើយ 🌸', 'Article marked as read! Gentle progress, Mama 🌸'));
+
+      const undoAction = options?.showUndoToast
+        ? {
+            label: t('មិនទាន់អាន (Undo)', 'Undo'),
+            onClick: () => {
+              setReadResourceIds((prev) => prev.filter((rId) => rId !== id));
+              logEvent('resource_marked_unread', id, currentWeek);
+              if (user?.id) {
+                supabase
+                  .from('user_read_resources')
+                  .delete()
+                  .eq('user_id', user.id)
+                  .eq('resource_id', id)
+                  .then(({ error }) => {
+                    if (error) console.warn('Could not delete read status', error.message);
+                  });
+              }
+              showToast(t('បានដកចេញពីបញ្ជីអានរួច។', 'Marked as unread.'));
+            },
+          }
+        : undefined;
+
+      showToast(
+        t('អ្នកបានអានអត្ថបទនេះរួចរាល់ហើយ 🌸', 'Article marked as read! Gentle progress, Mama 🌸'),
+        undoAction
+      );
     }
   };
 
@@ -835,6 +866,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     clearAnalytics,
     deleteMyData,
     toastMessage,
+    toastAction,
     showToast,
   };
 

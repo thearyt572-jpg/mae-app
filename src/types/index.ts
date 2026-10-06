@@ -219,6 +219,7 @@ export type AnalyticsEventType =
   | 'resource_opened'
   | 'resource_marked_read'
   | 'resource_marked_unread'
+  | 'resource_read_completed'
   | 'original_source_clicked'
   | 'notification_preference_selected'
   | 'profile_updated'
