@@ -140,6 +140,11 @@ interface AppContextType {
   toastMessage: string | null;
   toastAction: { label: string; onClick: () => void } | null;
   showToast: (msg: string, action?: { label: string; onClick: () => void }) => void;
+
+  // Premium & Upgrade Modal
+  isUpgradeModalOpen: boolean;
+  setIsUpgradeModalOpen: (open: boolean) => void;
+  isPremium: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -255,6 +260,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isContentEntryOpen, setIsContentEntryOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<PregnancyResource | null>(null);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastAction, setToastAction] = useState<{ label: string; onClick: () => void } | null>(null);
   const toastTimerRef = React.useRef<any>(null);
@@ -334,14 +340,67 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
   }, []);
 
-  // If the saved local user has no real Supabase session (for example an old
-  // placeholder account), sign them out locally so they log in properly.
+  // If active session exists, refresh profile from `users` table so manual `is_premium` changes are picked up immediately.
   useEffect(() => {
+    const refreshProfile = async (userId: string, userEmail?: string) => {
+      const { data: row } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (row) {
+        setUser((prev) =>
+          prev
+            ? {
+                ...prev,
+                name: row.name || prev.name,
+                is_premium: row.is_premium ?? false,
+                pregnancy_week: row.pregnancy_week || prev.pregnancy_week,
+                due_date: row.due_date || prev.due_date,
+                tier: row.is_premium ? 'premium' : prev.tier || 'free',
+              }
+            : {
+                id: userId,
+                name: row.name || userEmail?.split('@')[0] || 'User',
+                email: userEmail || '',
+                language: row.language || 'km',
+                pregnancy_week: row.pregnancy_week || 9,
+                due_date: row.due_date || undefined,
+                due_date_method: row.due_date_method || undefined,
+                lmp_date: row.lmp_date || undefined,
+                occupation: row.occupation || undefined,
+                is_first_pregnancy: row.is_first_pregnancy !== undefined ? row.is_first_pregnancy : true,
+                children_count: row.children_count || undefined,
+                notification_preference: row.notification_preference || 'weekly',
+                is_premium: row.is_premium ?? false,
+                tier: row.is_premium ? 'premium' : row.tier || 'free',
+                premium_until: row.premium_until || undefined,
+                created_at: row.created_at || new Date().toISOString(),
+              }
+        );
+      }
+    };
+
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) {
         setUser((prev) => (prev ? null : prev));
+      } else {
+        refreshProfile(data.session.user.id, data.session.user.email);
       }
     });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        refreshProfile(session.user.id, session.user.email);
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   // Sync resources to localStorage
@@ -510,6 +569,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       is_first_pregnancy: wizardAnswers?.isFirstPregnancy,
       children_count: wizardAnswers?.childrenCount,
       notification_preference: 'weekly',
+      is_premium: false,
       tier: 'free',
       created_at: new Date().toISOString(),
     };
@@ -552,7 +612,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       is_first_pregnancy: row?.is_first_pregnancy !== undefined ? row.is_first_pregnancy : true,
       children_count: row?.children_count || undefined,
       notification_preference: row?.notification_preference || 'weekly',
-      tier: row?.tier || 'free',
+      is_premium: row?.is_premium ?? false,
+      tier: (row?.is_premium ? 'premium' : row?.tier) || 'free',
       premium_until: row?.premium_until || undefined,
       created_at: row?.created_at || new Date().toISOString(),
     };
@@ -868,6 +929,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     toastMessage,
     toastAction,
     showToast,
+    isUpgradeModalOpen,
+    setIsUpgradeModalOpen,
+    isPremium: !!user?.is_premium,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

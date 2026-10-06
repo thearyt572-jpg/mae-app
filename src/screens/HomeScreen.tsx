@@ -22,7 +22,7 @@ import { TopicCard } from '../components/TopicCard';
 import { LittleReminder } from '../components/LittleReminder';
 
 export const HomeScreen: React.FC = () => {
-  const { user, currentWeek, currentMonth, monthlyMessage, focusTopics, setActiveTab, logEvent, t } = useApp();
+  const { user, isPremium, currentWeek, currentMonth, monthlyMessage, focusTopics, setActiveTab, logEvent, t } = useApp();
   const { getDueToday, toggleDone } = usePlan();
   const dueToday = getDueToday();
 
@@ -83,8 +83,8 @@ export const HomeScreen: React.FC = () => {
         </div>
       </section>
 
-      {/* Today's reminders strip */}
-      {dueToday.length > 0 && (
+      {/* Today's reminders strip (Premium feature) */}
+      {isPremium && dueToday.length > 0 && (
         <section className="p-4 sm:p-5 rounded-3xl bg-white border border-[#88A04D]/35 shadow-2xs space-y-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

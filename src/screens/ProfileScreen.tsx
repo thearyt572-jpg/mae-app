@@ -12,7 +12,7 @@
  */
 
 import React, { useState } from 'react';
-import { User, Bell, Globe, LogOut, Calendar, Heart, Trash2, ShieldCheck, AlertTriangle, X, Briefcase, Baby } from 'lucide-react';
+import { User, Bell, Globe, LogOut, Calendar, Heart, Trash2, ShieldCheck, AlertTriangle, X, Briefcase, Baby, Sparkles } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { UserLanguage, NotificationPreference, DueDateMethod } from '../types';
 import { TelegramLink } from '../components/TelegramLink';
@@ -22,6 +22,8 @@ export const ProfileScreen: React.FC = () => {
   const {
     user,
     isAuthenticated,
+    isPremium,
+    setIsUpgradeModalOpen,
     logout,
     updateUserPreferences,
     currentWeek,
@@ -234,6 +236,66 @@ export const ProfileScreen: React.FC = () => {
                 <span>{user.occupation}</span>
               </span>
             )}
+          </div>
+        )}
+      </section>
+
+      {/* 2. Membership & Plan Status */}
+      <section className="rounded-3xl bg-white border border-[#E5EADF] p-5 sm:p-6 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#5C7034]">
+            <Sparkles className="w-4 h-4 text-[#88A04D]" />
+            <span>{t('កម្រិតនៃការប្រើប្រាស់ (Plan Status)', 'Plan Status')}</span>
+          </div>
+
+          <span
+            className={`text-xs px-3 py-1 rounded-full font-bold inline-flex items-center gap-1.5 ${
+              isPremium
+                ? 'bg-[#EBF1E4] text-[#5C7034] border border-[#88A04D]/30'
+                : 'bg-[#FAF9F5] text-[#5F6E60] border border-[#E5EADF]'
+            }`}
+          >
+            {isPremium ? (
+              <>
+                <span>🌸</span>
+                <span>{t('គណនីពិសេស (Premium · My Plan)', 'Premium (My Plan)')}</span>
+              </>
+            ) : (
+              <>
+                <span>🌱</span>
+                <span>{t('គណនីឥតគិតថ្លៃ (Free Plan)', 'Free Plan')}</span>
+              </>
+            )}
+          </span>
+        </div>
+
+        <div className="text-xs text-[#5F6E60] leading-relaxed">
+          {isPremium ? (
+            <p className="text-[#233125]">
+              {t(
+                'អ្នកមានសិទ្ធិប្រើប្រាស់ពេញលេញលើមុខងារ «គម្រោងរបស់ខ្ញុំ» (My Plan), សាររំលឹកតាម Telegram និងការនាំចេញប្រតិទិន។',
+                'You have full access to My Plan, Telegram morning alerts, and Calendar export.'
+              )}
+            </p>
+          ) : (
+            <p>
+              {t(
+                'អ្នកអាចអានអត្ថបទសុខភាព និងស្តាប់សារសំឡេងទាំងអស់ដោយឥតគិតថ្លៃ។ សម្រាប់អ្នកចង់សាកល្បងមុខងារ My Plan អាចស្នើសុំដើម្បីឱ្យក្រុមការងារបើកជូនដោយផ្ទាល់។',
+                'All educational resources and audio messages are 100% free. You can request free beta access to My Plan.'
+              )}
+            </p>
+          )}
+        </div>
+
+        {!isPremium && (
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => setIsUpgradeModalOpen(true)}
+              className="min-h-[40px] px-4 py-2 rounded-full bg-[#88A04D] hover:bg-[#5C7034] text-white text-xs font-semibold shadow-2xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <span>{t('ស្វែងយល់ ឬស្នើសុំសាកល្បង My Plan 🌸', 'Learn about My Plan 🌸')}</span>
+            </button>
           </div>
         )}
       </section>

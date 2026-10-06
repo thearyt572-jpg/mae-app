@@ -23,6 +23,7 @@ export interface User {
   is_first_pregnancy?: boolean;
   children_count?: number;
   notification_preference: NotificationPreference;
+  is_premium?: boolean;
   tier?: 'free' | 'premium';
   premium_until?: string;
   created_at: string;
@@ -234,6 +235,7 @@ export type AnalyticsEventType =
   | 'due_date_updated'
   | 'paywall_shown'
   | 'upgrade_interest'
+  | 'calendar_exported'
   | 'logout_completed';
 
 export interface AnalyticsEvent {

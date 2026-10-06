@@ -21,6 +21,7 @@ import { TopicModal } from './components/TopicModal';
 import { ContentEntryModal } from './components/ContentEntryModal';
 import { AnalyticsDashboardModal } from './components/AnalyticsDashboardModal';
 import { ConsentBanner } from './components/ConsentBanner';
+import { UpgradeModal } from './components/UpgradeModal';
 
 const AppContent: React.FC = () => {
   const {
@@ -35,6 +36,8 @@ const AppContent: React.FC = () => {
     editingResource,
     toastMessage,
     toastAction,
+    isUpgradeModalOpen,
+    setIsUpgradeModalOpen,
   } = useApp();
 
   // Screen selection
@@ -135,6 +138,10 @@ const AppContent: React.FC = () => {
         resourceToEdit={editingResource}
       />
       <AnalyticsDashboardModal />
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+      />
     </div>
   );
 };

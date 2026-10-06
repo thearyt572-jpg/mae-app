@@ -31,7 +31,17 @@ export const AddToPlanSheet: React.FC<AddToPlanSheetProps> = ({
   sourceTitle,
   suggestions,
 }) => {
-  const { user, isAuthenticated, setIsAuthModalOpen, setAuthModalMode, logEvent, currentWeek, t } = useApp();
+  const {
+    user,
+    isAuthenticated,
+    isPremium,
+    setIsUpgradeModalOpen,
+    setIsAuthModalOpen,
+    setAuthModalMode,
+    logEvent,
+    currentWeek,
+    t,
+  } = useApp();
   const { addItems } = usePlan();
 
   // List of kept suggestions (initially all pre-selected)
@@ -74,6 +84,12 @@ export const AddToPlanSheet: React.FC<AddToPlanSheetProps> = ({
   };
 
   const handleConfirm = async () => {
+    if (!isPremium) {
+      onClose();
+      setIsUpgradeModalOpen(true);
+      return;
+    }
+
     if (keptSuggestions.length === 0) {
       onClose();
       return;
@@ -163,6 +179,34 @@ export const AddToPlanSheet: React.FC<AddToPlanSheetProps> = ({
             >
               <LogIn className="w-3.5 h-3.5" />
               <span>{t('ចូលគណនី', 'Log in')}</span>
+            </button>
+          </div>
+        )}
+
+        {/* Non-Premium Notice */}
+        {isAuthenticated && !isPremium && (
+          <div className="p-4 rounded-2xl bg-[#F0F4E8] border border-[#88A04D]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="space-y-0.5 text-[#233125]">
+              <p className="font-bold">
+                {t('មុខងារគម្រោងពិសេស · My Plan Premium', 'My Plan Premium Feature')}
+              </p>
+              <p className="text-[#5F6E60]">
+                {t(
+                  'ការបន្ថែម និងកត់ត្រាការងារក្នុងគម្រោង ត្រូវភ្ជាប់ជាមួយ My Plan (សាកល្បងឥតគិតថ្លៃ)។',
+                  'Adding items to personal routine is part of My Plan (free beta trial).'
+                )}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                setIsUpgradeModalOpen(true);
+              }}
+              className="min-h-[40px] px-4 py-2 rounded-full bg-[#88A04D] hover:bg-[#5C7034] text-white font-semibold flex items-center justify-center gap-1.5 shrink-0 shadow-2xs cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{t('ស្នើសុំសាកល្បង', 'Ask for Access')}</span>
             </button>
           </div>
         )}

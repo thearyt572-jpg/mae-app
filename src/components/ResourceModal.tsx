@@ -36,6 +36,8 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({ resource, onClose 
     isResourceRead,
     toggleResourceRead,
     markResourceAsRead,
+    isPremium,
+    setIsUpgradeModalOpen,
     t,
   } = useApp();
 
@@ -387,10 +389,16 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({ resource, onClose 
               </span>
             </button>
 
-            {/* Add to My Plan Button */}
+            {/* Add to My Plan Button (Premium feature) */}
             <button
               type="button"
-              onClick={() => setIsPlanSheetOpen(true)}
+              onClick={() => {
+                if (!isPremium) {
+                  setIsUpgradeModalOpen(true);
+                  return;
+                }
+                setIsPlanSheetOpen(true);
+              }}
               className="min-h-[44px] inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-full border border-[#88A04D]/40 bg-[#F0F4E8] text-[#5C7034] hover:bg-[#EBF1E4] transition-all"
             >
               <CalendarCheck className="w-4 h-4 text-[#88A04D]" />

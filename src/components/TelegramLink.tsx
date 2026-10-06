@@ -31,7 +31,18 @@ interface TelegramLinkProps {
 }
 
 export const TelegramLink: React.FC<TelegramLinkProps> = ({ variant = 'card', onLinked }) => {
-  const { user, isAuthenticated, setIsAuthModalOpen, setAuthModalMode, logEvent, currentWeek, showToast, t } = useApp();
+  const {
+    user,
+    isAuthenticated,
+    isPremium,
+    setIsUpgradeModalOpen,
+    setIsAuthModalOpen,
+    setAuthModalMode,
+    logEvent,
+    currentWeek,
+    showToast,
+    t,
+  } = useApp();
 
   const [linkData, setLinkData] = useState<TelegramLinkType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -108,6 +119,11 @@ export const TelegramLink: React.FC<TelegramLinkProps> = ({ variant = 'card', on
     if (!user?.id) {
       setAuthModalMode('login');
       setIsAuthModalOpen(true);
+      return;
+    }
+
+    if (!isPremium) {
+      setIsUpgradeModalOpen(true);
       return;
     }
 
@@ -297,10 +313,16 @@ export const TelegramLink: React.FC<TelegramLinkProps> = ({ variant = 'card', on
             type="button"
             disabled={isGenerating}
             onClick={handleGenerateCode}
-            className="min-h-[44px] px-5 py-2.5 rounded-full bg-[#88A04D] hover:bg-[#5C7034] active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            className="min-h-[44px] px-5 py-2.5 rounded-full bg-[#88A04D] hover:bg-[#5C7034] active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
           >
             <Sparkles className="w-4 h-4" />
-            <span>{isGenerating ? t('កំពុងបង្កើតកូដ...', 'Generating code...') : t('ភ្ជាប់ជាមួយ Telegram', 'Connect Telegram')}</span>
+            <span>
+              {!isPremium
+                ? t('ស្នើសុំសាកល្បង My Plan 🌸', 'Ask for Access (My Plan) 🌸')
+                : isGenerating
+                ? t('កំពុងបង្កើតកូដ...', 'Generating code...')
+                : t('ភ្ជាប់ជាមួយ Telegram', 'Connect Telegram')}
+            </span>
           </button>
         </div>
       ) : (
