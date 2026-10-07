@@ -149,7 +149,7 @@ export const PlanScreen: React.FC = () => {
               onClick={() => setIsUpgradeModalOpen(true)}
               className="min-h-[44px] px-6 py-2.5 rounded-full bg-[#88A04D] hover:bg-[#5C7034] active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>{t('ស្នើសុំការសាកល្បង 🌸', 'Ask for Access 🌸')}</span>
+              <span>{t('ដំឡើងគម្រោង / ភ្ជាប់ Telegram 🌸', 'Purchase / Upgrade Plan 🌸')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -249,7 +249,7 @@ export const PlanScreen: React.FC = () => {
             onClick={() => setIsUpgradeModalOpen(true)}
             className="min-h-[40px] px-4 py-2 rounded-full border border-[#88A04D]/40 text-[#5C7034] font-semibold hover:bg-[#EBF1E4] transition-colors shrink-0"
           >
-            {t('ស្នើសុំសាកល្បង', 'Request Access')}
+            {t('ដំឡើងគម្រោង / ភ្ជាប់ Telegram', 'Purchase / Upgrade Plan')}
           </button>
         </div>
       </div>

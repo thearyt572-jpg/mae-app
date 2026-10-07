@@ -294,7 +294,7 @@ export const ProfileScreen: React.FC = () => {
               onClick={() => setIsUpgradeModalOpen(true)}
               className="min-h-[40px] px-4 py-2 rounded-full bg-[#88A04D] hover:bg-[#5C7034] text-white text-xs font-semibold shadow-2xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <span>{t('ស្វែងយល់ ឬស្នើសុំសាកល្បង My Plan 🌸', 'Learn about My Plan 🌸')}</span>
+              <span>{t('ដំឡើងគម្រោង / ភ្ជាប់ Telegram 🌸', 'Purchase / Upgrade Plan 🌸')}</span>
             </button>
           </div>
         )}

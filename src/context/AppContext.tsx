@@ -472,8 +472,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       loadTodayDailyUsage(userId);
     };
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
+    supabase.auth?.getSession?.()?.then(({ data }: any) => {
+      if (!data?.session) {
         setUser((prev) => (prev ? null : prev));
         // Guest user: load from localStorage for today
         const todayStr = getCambodiaDateStr();
@@ -488,7 +488,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const authSub = supabase.auth?.onAuthStateChange?.((_event: any, session: any) => {
       if (session?.user) {
         refreshProfile(session.user.id, session.user.email);
       } else {
@@ -497,7 +497,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     return () => {
-      authListener.subscription.unsubscribe();
+      authSub?.data?.subscription?.unsubscribe?.();
     };
   }, []);
 

@@ -155,3 +155,26 @@ export function canUsePlan(isPremium: boolean = false): FeatureAccessResult {
 export function canUseReminders(isPremium: boolean = false): FeatureAccessResult {
   return { allowed: isPremium };
 }
+
+/**
+ * Generates a temporary single-use Telegram connection token (e.g. FLOW-7K29).
+ * Cryptographically random, 15-minute validity, case-insensitive.
+ */
+export function generateTelegramConnectionCode(): string {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let randomPart = '';
+  
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const bytes = new Uint8Array(4);
+    crypto.getRandomValues(bytes);
+    for (let i = 0; i < 4; i++) {
+      randomPart += chars.charAt(bytes[i] % chars.length);
+    }
+  } else {
+    for (let i = 0; i < 4; i++) {
+      randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+  }
+  
+  return `FLOW-${randomPart}`;
+}

@@ -20,10 +20,15 @@ import {
   PowerOff,
   Sparkles,
   LogIn,
+  QrCode,
+  Copy,
+  Check,
 } from 'lucide-react';
+import QRCode from 'qrcode';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
 import { TelegramLink as TelegramLinkType } from '../types';
+import { generateTelegramConnectionCode } from '../lib/entitlements';
 
 interface TelegramLinkProps {
   variant?: 'card' | 'compact' | 'onboarding';
@@ -41,6 +46,7 @@ export const TelegramLink: React.FC<TelegramLinkProps> = ({ variant = 'card', on
     logEvent,
     currentWeek,
     showToast,
+    updateUserPreferences,
     t,
   } = useApp();
 
@@ -48,8 +54,10 @@ export const TelegramLink: React.FC<TelegramLinkProps> = ({ variant = 'card', on
   const [isLoading, setIsLoading] = useState(false);
   const [currentCode, setCurrentCode] = useState<string | null>(null);
   const [codeExpiresAt, setCodeExpiresAt] = useState<Date | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUnlinking, setIsUnlinking] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const pollIntervalRef = useRef<any>(null);
 
@@ -130,9 +138,8 @@ export const TelegramLink: React.FC<TelegramLinkProps> = ({ variant = 'card', on
     try {
       setIsGenerating(true);
 
-      // Generate friendly 6-char alphanumeric code (e.g. MAE742)
-      const randomDigits = Math.floor(100 + Math.random() * 900);
-      const code = `MAE${randomDigits}`;
+      // Generate temporary single-use code (e.g. FLOW-7K29)
+      const code = generateTelegramConnectionCode();
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
       // Delete any previous unused codes for this user
@@ -149,13 +156,56 @@ export const TelegramLink: React.FC<TelegramLinkProps> = ({ variant = 'card', on
         console.error('Failed to create link code', error);
         showToast(t('មិនអាចបង្កើតលេខកូដបានទេ សូមព្យាយាមម្តងទៀត', 'Could not create code, please try again'));
       } else {
+        const deepLink = `https://t.me/${botUsername}?start=${code}`;
+        const dataUrl = await QRCode.toDataURL(deepLink, {
+          width: 200,
+          margin: 2,
+          color: { dark: '#233125', light: '#FFFFFF' },
+        });
         setCurrentCode(code);
         setCodeExpiresAt(expiresAt);
+        setQrDataUrl(dataUrl);
       }
     } catch (err) {
       console.error('Generate code error', err);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleCopyCode = async () => {
+    if (!currentCode) return;
+    try {
+      await navigator.clipboard.writeText(currentCode);
+      setCopied(true);
+      showToast(t('បានចម្លងលេខកូដរួចរាល់ 📋', 'Connection code copied 📋'));
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      showToast(currentCode);
+    }
+  };
+
+  // Developer / Tester simulation helper
+  const handleSimulateBotConfirmation = async () => {
+    if (!user?.id || !currentCode) return;
+    try {
+      const mockChatId = Math.floor(100000000 + Math.random() * 900000000);
+      await supabase.from('telegram_links').upsert({
+        user_id: user.id,
+        chat_id: mockChatId,
+        created_at: new Date().toISOString(),
+      });
+      await supabase.from('entitlements').upsert({
+        user_id: user.id,
+        is_premium: true,
+        granted_at: new Date().toISOString(),
+        notes: 'Simulated Telegram Connection',
+      });
+      await supabase.from('link_codes').delete().eq('code', currentCode);
+      updateUserPreferences({ is_premium: true });
+      showToast(t('បានតេស្តភ្ជាប់ជោគជ័យ (Simulated) ✅', 'Connection simulated successfully ✅'));
+    } catch (err) {
+      console.error('Simulation error:', err);
     }
   };
 

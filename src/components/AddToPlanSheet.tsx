@@ -402,7 +402,7 @@ export const AddToPlanSheet: React.FC<AddToPlanSheetProps> = ({
               className="min-h-[44px] px-6 py-2.5 rounded-full bg-[#88A04D] hover:bg-[#5C7034] active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-xs transition-all flex items-center gap-2 cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
-              <span>{t('ស្នើសុំសាកល្បង My Plan 🌸', 'Ask for Access to My Plan 🌸')}</span>
+              <span>{t('ដំឡើងគម្រោង / ភ្ជាប់ Telegram 🌸', 'Purchase / Upgrade Plan 🌸')}</span>
             </button>
           )}
         </div>
