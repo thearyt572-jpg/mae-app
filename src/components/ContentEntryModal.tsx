@@ -50,6 +50,9 @@ export const ContentEntryModal: React.FC<ContentEntryModalProps> = ({
   const [summaryEn, setSummaryEn] = useState('');
   const [summaryPurpose, setSummaryPurpose] = useState('');
   const [weeklyFocus, setWeeklyFocus] = useState('');
+  const [audioUrl, setAudioUrl] = useState('');
+  const [audioDuration, setAudioDuration] = useState('');
+  const [audioTranscriptKh, setAudioTranscriptKh] = useState('');
   const [status, setStatus] = useState<ResourceStatus>('Published');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -66,6 +69,9 @@ export const ContentEntryModal: React.FC<ContentEntryModalProps> = ({
       setSummaryEn(resourceToEdit.summaryEn || '');
       setSummaryPurpose(resourceToEdit.summaryPurpose || '');
       setWeeklyFocus(resourceToEdit.weeklyFocus || '');
+      setAudioUrl(resourceToEdit.audioUrl || '');
+      setAudioDuration(resourceToEdit.audioDuration || '');
+      setAudioTranscriptKh(resourceToEdit.audioTranscriptKh || '');
       setStatus(resourceToEdit.status || 'Published');
     } else {
       setTitleKh('');
@@ -79,6 +85,9 @@ export const ContentEntryModal: React.FC<ContentEntryModalProps> = ({
       setSummaryEn('');
       setSummaryPurpose('');
       setWeeklyFocus('');
+      setAudioUrl('');
+      setAudioDuration('');
+      setAudioTranscriptKh('');
       setStatus('Published');
     }
     setErrorMsg(null);
@@ -123,6 +132,9 @@ export const ContentEntryModal: React.FC<ContentEntryModalProps> = ({
       summaryEn: summaryEn.trim() || summaryKh.trim(),
       summaryPurpose: summaryPurpose.trim(),
       weeklyFocus: weeklyFocus.trim(),
+      audioUrl: audioUrl.trim() || undefined,
+      audioDuration: audioDuration.trim() || undefined,
+      audioTranscriptKh: audioTranscriptKh.trim() || undefined,
       status,
     };
 
@@ -351,6 +363,54 @@ export const ContentEntryModal: React.FC<ContentEntryModalProps> = ({
               placeholder="ឧទាហរណ៍៖ កក់ការណាត់ជួបគ្រូពេទ្យលើកដំបូង និងរៀបចំសៀវភៅតាមដានសុខភាពមាតា"
               className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E5EADF] text-xs sm:text-sm text-[#233125] focus:border-[#88A04D]"
             />
+          </div>
+
+          {/* Optional Audio Integration (Supabase Storage reference) */}
+          <div className="p-3.5 rounded-2xl bg-[#F0F4E8]/60 border border-[#88A04D]/25 space-y-3">
+            <h4 className="text-xs font-bold text-[#5C7034] uppercase tracking-wider">
+              🎙️ Supabase Storage Audio (ស្រេចចិត្ត / Optional)
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-[#5F6E60] mb-1">
+                  Storage Audio Path (e.g. Psi_audio/1.mp3)
+                </label>
+                <input
+                  type="text"
+                  value={audioUrl}
+                  onChange={(e) => setAudioUrl(e.target.value)}
+                  placeholder="Psi_audio/1.mp3"
+                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-[#E5EADF] text-xs text-[#233125] focus:border-[#88A04D]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#5F6E60] mb-1">
+                  Audio Duration (e.g. 2:15)
+                </label>
+                <input
+                  type="text"
+                  value={audioDuration}
+                  onChange={(e) => setAudioDuration(e.target.value)}
+                  placeholder="2:15"
+                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-[#E5EADF] text-xs text-[#233125] focus:border-[#88A04D]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#5F6E60] mb-1">
+                Audio Transcript (Khmer Conversation)
+              </label>
+              <textarea
+                rows={3}
+                value={audioTranscriptKh}
+                onChange={(e) => setAudioTranscriptKh(e.target.value)}
+                placeholder="ឆ្មប៖ ជម្រាបសួរ...&#10;ម្តាយ៖ ជម្រាបសួរ..."
+                className="w-full px-3.5 py-2 rounded-xl bg-white border border-[#E5EADF] text-xs text-[#233125] focus:border-[#88A04D]"
+              />
+            </div>
           </div>
 
           {/* Status */}

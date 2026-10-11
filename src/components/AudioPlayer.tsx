@@ -9,7 +9,7 @@
  * Attribution: Voice message courtesy of PSI (អង្គការ PSI).
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Play,
   Pause,
@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { PlanSuggestion } from '../types';
 import { useApp } from '../context/AppContext';
+import { getStorageAudioUrl } from '../lib/supabase';
 import { FeedbackCard } from './FeedbackCard';
 import { AddToPlanSheet } from './AddToPlanSheet';
 
@@ -37,7 +38,9 @@ interface AudioPlayerProps {
   letter?: string;
   audioUrl?: string;
   durationStr?: string;
-  monthOrWeek: number;
+  monthOrWeek?: number;
+  sourceType?: 'resource' | 'voice_message';
+  sourceId?: string;
   planSuggestions?: PlanSuggestion[];
 }
 
@@ -46,12 +49,20 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   subtitle,
   transcript,
   letter,
-  audioUrl = '/audio/month-1.mp3',
+  audioUrl,
   durationStr = '2:15',
-  monthOrWeek,
+  monthOrWeek = 1,
+  sourceType = 'voice_message',
+  sourceId,
   planSuggestions,
 }) => {
   const { logEvent, t, language, isPremium, setIsUpgradeModalOpen } = useApp();
+
+  const resolvedAudioUrl = useMemo(() => {
+    return getStorageAudioUrl(audioUrl);
+  }, [audioUrl]);
+
+  const hasAudioSource = Boolean(resolvedAudioUrl && resolvedAudioUrl.trim() !== '');
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const synthUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -66,8 +77,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [hasListened, setHasListened] = useState(false);
 
-  // Expandable letter: Open by default as requested!
-  const [isLetterOpen, setIsLetterOpen] = useState(true);
+  // Expandable transcript: Open by default
+  const [isTranscriptOpen, setIsTranscriptOpen] = useState(true);
   const [isPlanSheetOpen, setIsPlanSheetOpen] = useState(false);
 
   // Keep track of listening time for telemetry
@@ -76,7 +87,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   const displayTitle = title || t('សារសំឡេងប្រចាំខែពីម៉ែ 🌸', 'Monthly Voice Message from Mom 🌸');
   const displaySubtitle = subtitle || t('«មានសារតូចមួយសម្រាប់អ្នកក្នុងខែនេះ»', '"A short message for you this month"');
-  const displayLetter = letter || transcript;
+  const displayTranscript = transcript || letter || '';
 
   const activePlanSuggestions = planSuggestions && planSuggestions.length > 0
     ? planSuggestions
@@ -329,10 +340,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   return (
     <div className="rounded-3xl bg-gradient-to-b from-[#F0F4E8]/90 via-white to-[#FAF9F5] border border-[#E5EADF] p-5 sm:p-7 shadow-xs space-y-4">
       {/* Real HTML5 Audio Element */}
-      {audioUrl && (
+      {resolvedAudioUrl && (
         <audio
           ref={audioRef}
-          src={audioUrl}
+          src={resolvedAudioUrl}
           preload="metadata"
           onLoadedMetadata={onAudioLoadedMetadata}
           onTimeUpdate={onAudioTimeUpdate}
@@ -347,7 +358,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FAF9F5] border border-[#88A04D]/30 text-xs font-semibold text-[#5C7034] shadow-2xs">
               <Heart className="w-3.5 h-3.5 fill-[#88A04D] text-[#88A04D]" />
-              <span>{t('សារសំឡេងប្រចាំខែពីម៉ែ', 'Monthly Voice Message')}</span>
+              <span>{t('សារសំឡេងណែនាំ 🌸', 'Voice Guidance 🌸')}</span>
             </span>
 
             {/* Credit Badge: Voice message courtesy of PSI */}
@@ -388,7 +399,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             step={0.5}
             value={currentTime}
             onChange={handleSeek}
-            className="w-full h-2 rounded-lg bg-[#E5EADF] accent-[#88A04D] cursor-pointer"
+            disabled={!hasAudioSource && audioSourceMode !== 'synthesis'}
+            className="w-full h-2 rounded-lg bg-[#E5EADF] accent-[#88A04D] cursor-pointer disabled:opacity-50"
             aria-label="Seek audio"
           />
         </div>
@@ -444,7 +456,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         <button
           type="button"
           onClick={handleTogglePlay}
-          className="min-h-[48px] px-6 py-2.5 rounded-full bg-[#88A04D] hover:bg-[#5C7034] active:scale-[0.98] text-white flex items-center gap-2 shadow-xs transition-all"
+          className="min-h-[48px] px-6 py-2.5 rounded-full bg-[#88A04D] hover:bg-[#5C7034] active:scale-[0.98] text-white flex items-center gap-2 shadow-xs transition-all cursor-pointer"
         >
           {isPlaying ? (
             <>
@@ -454,45 +466,49 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           ) : (
             <>
               <Play className="w-5 h-5 fill-white ml-0.5" />
-              <span className="font-semibold text-sm">{t('ស្តាប់សំឡេង', 'Listen to Voice')}</span>
+              <span className="font-semibold text-sm">
+                {!hasAudioSource && audioSourceMode !== 'synthesis'
+                  ? t('ស្តាប់សំឡេង', 'Listen to Voice')
+                  : t('ស្តាប់សំឡេង', 'Listen to Voice')}
+              </span>
             </>
           )}
         </button>
       </div>
 
-      {/* Expandable "Read the Letter" Section (OPEN BY DEFAULT) */}
+      {/* Expandable "Audio Transcript" Section (OPEN BY DEFAULT) */}
       <section className="pt-2 border-t border-[#E5EADF]">
         <button
           type="button"
-          onClick={() => setIsLetterOpen(!isLetterOpen)}
-          className="w-full flex items-center justify-between py-2 text-left text-xs sm:text-sm font-bold text-[#233125] hover:text-[#5C7034] transition-colors"
-          aria-expanded={isLetterOpen}
+          onClick={() => setIsTranscriptOpen(!isTranscriptOpen)}
+          className="w-full flex items-center justify-between py-2 text-left text-xs sm:text-sm font-bold text-[#233125] hover:text-[#5C7034] transition-colors cursor-pointer"
+          aria-expanded={isTranscriptOpen}
         >
           <div className="flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-[#EBF1E4] text-[#88A04D] flex items-center justify-center shrink-0">
               <FileText className="w-3.5 h-3.5" />
             </span>
-            <span>{t('អានសំបុត្រពីម៉ែ (Read the letter)', 'Read the letter')}</span>
+            <span>{t('អត្ថបទសំឡេង / Audio Transcript', 'អត្ថបទសំឡេង / Audio Transcript')}</span>
           </div>
 
           <div className="flex items-center gap-1 text-[#5F6E60] text-xs font-normal">
-            <span>{isLetterOpen ? t('បិទសំបុត្រ', 'Hide') : t('បើកមើល', 'Show')}</span>
-            {isLetterOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            <span>{isTranscriptOpen ? t('បិទ', 'Hide') : t('បើកមើល', 'Show')}</span>
+            {isTranscriptOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </div>
         </button>
 
-        {isLetterOpen && (
+        {isTranscriptOpen && displayTranscript && (
           <div className="mt-2.5 p-4 sm:p-5 rounded-2xl bg-white border border-[#E5EADF] shadow-2xs space-y-3 animate-fade-in">
             <div className="flex items-center justify-between text-[11px] text-[#5C7034] font-medium border-b border-[#FAF9F5] pb-2">
               <span className="flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-[#88A04D]" />
-                <span>{t('សំបុត្រប្រចាំខែ', 'Monthly Letter')}</span>
+                <span>{t('អត្ថបទសន្ទនា', 'Audio Transcript')}</span>
               </span>
               <span className="text-[#5F6E60]">{t('សារសំឡេងទទួលបានការអនុញ្ញាតពីអង្គការ PSI', 'Voice message courtesy of PSI')}</span>
             </div>
 
-            <div className="text-sm sm:text-base text-[#233125] leading-relaxed whitespace-pre-line font-serif italic">
-              {displayLetter}
+            <div className="text-sm sm:text-base text-[#233125] leading-relaxed whitespace-pre-line font-sans">
+              {displayTranscript}
             </div>
           </div>
         )}
@@ -505,8 +521,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       <AddToPlanSheet
         isOpen={isPlanSheetOpen}
         onClose={() => setIsPlanSheetOpen(false)}
-        sourceType="voice_message"
-        sourceId={`mom_voice_m${monthOrWeek}`}
+        sourceType={sourceType}
+        sourceId={sourceId || `mom_voice_m${monthOrWeek}`}
         sourceTitle={displayTitle}
         suggestions={activePlanSuggestions}
       />

@@ -272,6 +272,15 @@ const createMockClient = () => {
 
       return chain;
     },
+    storage: {
+      from: (bucket: string) => ({
+        getPublicUrl: (path: string) => ({
+          data: {
+            publicUrl: `${(supabaseUrl || 'https://supabase.co').replace(/\/$/, '')}/storage/v1/object/public/${bucket}/${path}`,
+          },
+        }),
+      }),
+    },
   };
 };
 
@@ -288,3 +297,33 @@ if (supabaseUrl && supabaseAnonKey && typeof supabaseUrl === 'string' && supabas
 }
 
 export const supabase: SupabaseClient = client as unknown as SupabaseClient;
+
+/**
+ * Resolves an audio file path or URL to a valid Supabase Storage public URL.
+ * Handles paths like "Psi_audio/1.mp3" or already-formed HTTP URLs.
+ */
+export function getStorageAudioUrl(pathOrUrl?: string): string {
+  if (!pathOrUrl) return '';
+  if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://') || pathOrUrl.startsWith('blob:')) {
+    return pathOrUrl;
+  }
+
+  const cleanPath = pathOrUrl.startsWith('/') ? pathOrUrl.slice(1) : pathOrUrl;
+
+  // Extract bucket and object key
+  let bucket = 'Psi_audio';
+  let objectKey = cleanPath;
+
+  if (cleanPath.startsWith('Psi_audio/')) {
+    bucket = 'Psi_audio';
+    objectKey = cleanPath.replace(/^Psi_audio\//, '');
+  }
+
+  try {
+    const { data } = supabase.storage.from(bucket).getPublicUrl(objectKey);
+    if (data?.publicUrl) return data.publicUrl;
+  } catch {}
+
+  const base = (supabaseUrl || 'https://supabase.co').replace(/\/$/, '');
+  return `${base}/storage/v1/object/public/${bucket}/${objectKey}`;
+}

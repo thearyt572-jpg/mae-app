@@ -21,6 +21,7 @@ import { PregnancyResource } from '../types';
 import { useApp } from '../context/AppContext';
 import { FeedbackCard } from './FeedbackCard';
 import { AddToPlanSheet } from './AddToPlanSheet';
+import { AudioPlayer } from './AudioPlayer';
 
 interface ResourceModalProps {
   resource: PregnancyResource;
@@ -343,6 +344,22 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({ resource, onClose 
           ref={scrollContainerRef}
           className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 relative"
         >
+          {/* Audio Player if resource has audio source */}
+          {resource.audioUrl && (
+            <div className="mb-2">
+              <AudioPlayer
+                title={title}
+                subtitle={resource.sourceName}
+                audioUrl={resource.audioUrl}
+                transcript={resource.audioTranscriptKh || resource.audioTranscriptEn || summary}
+                durationStr={resource.audioDuration || '2:15'}
+                sourceType="resource"
+                sourceId={resource.id}
+                planSuggestions={resource.planSuggestions}
+              />
+            </div>
+          )}
+
           {/* FlowErs Friendly Summary */}
           <div className="space-y-1.5">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-[#5C7034]">

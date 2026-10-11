@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { ExternalLink, BookOpen, Check } from 'lucide-react';
+import { ExternalLink, BookOpen, Check, Volume2 } from 'lucide-react';
 import { PregnancyResource } from '../types';
 import { useApp } from '../context/AppContext';
 
@@ -77,6 +77,15 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onOpenDeta
             <span className="font-semibold text-[#5C7034]">{resource.category}</span>
             <span aria-hidden="true">·</span>
             <span>{resource.pregnancyStage}</span>
+            {resource.audioUrl && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#EBF1E4] text-[#5C7034] font-semibold text-[11px]">
+                  <Volume2 className="w-3 h-3 text-[#88A04D]" />
+                  <span>{t('សំឡេងណែនាំ', 'Audio')}</span>
+                </span>
+              </>
+            )}
           </div>
 
           {/* Quick Mark Read button */}
@@ -136,8 +145,17 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onOpenDeta
           onClick={handleCardClick}
           className="font-semibold text-[#88A04D] hover:text-[#5C7034] flex items-center gap-1"
         >
-          <BookOpen className="w-3.5 h-3.5" />
-          <span>{t('អានការណែនាំ', 'View Guide')}</span>
+          {resource.audioUrl ? (
+            <>
+              <Volume2 className="w-3.5 h-3.5" />
+              <span>{t('ស្តាប់ / អានការណែនាំ', 'Listen / Guide')}</span>
+            </>
+          ) : (
+            <>
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>{t('អានការណែនាំ', 'View Guide')}</span>
+            </>
+          )}
         </button>
 
         <a

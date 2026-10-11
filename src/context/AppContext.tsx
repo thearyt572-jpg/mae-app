@@ -186,6 +186,10 @@ const rowToResource = (row: any): PregnancyResource =>
     title: row.title_kh,
     summary: row.summary_kh,
     planSuggestions: row.plan_suggestions ?? [],
+    audioUrl: row.audio_url,
+    audioTranscriptKh: row.audio_transcript_kh,
+    audioTranscriptEn: row.audio_transcript_en,
+    audioDuration: row.audio_duration,
     createdAt: row.created_at,
     updatedAt: row.created_at,
   }) as PregnancyResource;

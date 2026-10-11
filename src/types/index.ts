@@ -70,6 +70,12 @@ export interface PregnancyResource {
   createdAt?: string;
   updatedAt?: string;
 
+  // Audio additions (Supabase Storage reference e.g. Psi_audio/1.mp3 & transcript)
+  audioUrl?: string;
+  audioTranscriptKh?: string;
+  audioTranscriptEn?: string;
+  audioDuration?: string;
+
   // Convenience aliases for flexible display
   title?: string;
   summary?: string;
