@@ -1,285 +1,219 @@
-# Mae (ម៉ែ) — Redesign Brief for the Agent
+# Mae (ម៉ែ) — Brief 2: Scope Lock, Data Decisions and Open Questions
 
-Repo: `i-eat-tea/mae-app` (public; 1 commit, "Initial commit", 2026-10-14). Live: https://mae-app-byflowers.vercel.app/
-Stack today: Vite 8 + React 19 + Tailwind 4 + Supabase (auth/DB/edge functions) + a Telegram bot.
+**Continues:** `mae-redesign-brief.md` (Brief 1). Read Brief 1 first. This file does not repeat it. Where the two disagree, **this file wins**, and the "Supersedes" list below says exactly what changes.
 
-> Note for the user: the link you sent (`mae-apphelp`) does not exist. The real repo is `mae-app`. This brief is based on reading that repo (about 12k lines of TS/TSX, 68 files). I did not run the app, so anything about how the live site behaves is marked as unverified.
+Repo: `i-eat-tea/mae-app`. Agent branch: `redesign` (reported ready, `main` untouched).
 
-## 0. TL;DR
-
-Turn Mae from a **pregnancy companion with accounts, plans, reminders and a paywall** into a **free, open, Khmer-first health information center** that any woman in Cambodia can use on a cheap phone with no signup. Keep the curated **content** (it is the valuable part). Throw away almost all of the **app code** around it. Content lives in validated files, not in a database. Anything medical is written or approved by humans, never by the agent.
+> Verified by me: the public repo `mae-app` currently shows **only `main`**. The `redesign` branch is not on GitHub, so I have **not reviewed it**. Task P2-1 fixes that. Everything below about the branch's contents is therefore not checked.
 
 ---
 
-## 1. What exists today (evidence)
+## 0. What changed since Brief 1
 
-| Area | What the code does | Verdict |
-|---|---|---|
-| Content: `src/data/resources.ts` | 11 curated articles. Each has Khmer and English title/summary, a source organisation (NMCHC/MoH, WHO, UNICEF, RHAC, PSI), a source URL, weeks, category, plan suggestions. One is flagged `is_safety_critical` (`res-nmchc-warning-signs`). | **Keep (core asset)** |
-| `src/data/monthlyMessages.ts` | 9 monthly "Mom's voice" scripts in Khmer and English, 1:45–2:30 each, all pointing to `/audio/month-N.mp3`. | Keep the scripts |
-| `src/data/weeklyGuidance.ts` | Weekly guidance for **only weeks 8, 9, 10 and 12**; 3 focus-topic groups of 3 topics. | Keep, but it is thin |
-| `src/data/babySizes.ts` | Baby size by week (37 rows, fruit comparison). | Optional |
-| Audio files | `public/audio/` holds only a README. **No mp3 files are in the repo.** Unverified: whether they exist on the live deployment. | Needs checking |
-| Screens | Landing, Home, Journey (flower/baby growth), Plan (personal to-do list), Explore (the library), Profile. | Keep only Explore's idea |
-| Accounts | Supabase email+password auth, onboarding wizard, due-date calculator, profile. | Remove |
-| Paywall | `FREE_LIMITS.dailySummaries = 2` (`src/lib/entitlements.ts`). Free users can open only 2 summaries a day; the rest need "Premium", unlocked by linking Telegram. | **Remove** (contradicts the goal) |
-| Telegram | Link-code flow, webhook and daily-reminder edge functions in `supabase/functions/`. | Out of scope for the web app |
-| Analytics and consent | Event logging (including search text), a research dashboard modal, a consent banner. | Replace |
-| UI | 8 modals/sheets plus a banner; most flows happen in popups. | Replace |
+Decisions from Aj:
 
-### Problems found while reading (verify before relying on any of them)
+1. **FlowErs already has reminders and an overview.** Mae must contain **nothing unrelated to the information center**.
+2. **Features that were promised but never finished are dropped**, not rebuilt.
+3. Mae has **no database**. FlowErs keeps its own MySQL.
 
-1. **A category filter shows nothing.** Two articles are tagged "Wellbeing", but the "Wellbeing" filter button returns **0 of 2** (tested by running the filter logic against the data). Categories are long free-text Khmer+English strings that don't match (`ការថែទាំកាយនិងចិត្ត` vs `ការថែទាំរាងកាយនិងសុខភាពផ្លូវចិត្ត`) and matching is a fragile `includes`.
-2. **Public visitors see admin buttons.** On Explore, "Add Resource" and "Reset default catalog" show to everyone (`ResourcesScreen.tsx` ~L103–116 and ~L229–235). Edits live in the visitor's own `localStorage`, so there is no real way for the team to update content except by editing code.
-3. **Mock auth stores plaintext passwords.** When `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are missing, `src/lib/supabase.ts` falls back to a fake client that saves `{email, password}` in `localStorage` (L14, L95, L113). Unverified: whether the live Vercel build has the Supabase env vars set. The user should check this now.
-4. **Premium is a browser flag.** `UpgradeModal.tsx` (~L215/266/276) sets `is_premium: true` in the saved user object in the browser, so anyone can flip it. Moot once the paywall is deleted.
-5. **Telegram webhook looks unauthenticated.** `supabase/functions/telegram-webhook/index.ts` uses the service-role key and I found no check of Telegram's secret-token header (my search for "secret" matched only env-var names). If the bot is kept, add the check.
-6. **Repo hygiene.** `supabase/.temp/` is committed (project ref `vihpflruinfvfmvckrxy` and a pooler URL, no password). Three SQL files (`r0_schema.sql`, `premium_schema.sql`, `entitlements_schema.sql`) each define `daily_usage`/`entitlements` differently. `package.json` is still named `react-example` and carries AI Studio leftovers (`@google/genai`, `express`, `dotenv`, `metadata.json` declaring a Gemini capability). The README is out of date (it says "no environment variables, fully offline").
-7. **Two different bot names.** Mae's code defaults to `MaeFlowErsBot`; the FlowErs app links to `t.me/FlowErs168bot`.
-8. **Source language.** At least one source link is an English-only PDF (`…Protocols-for-Health-Centers-2016-EN.pdf`) behind a Khmer summary. Readers who only read Khmer can't verify it.
-9. **Search is naive.** Plain `includes()` on lowercased strings. Khmer has no spaces between words, and the same visible text can be typed in different Unicode sequences, so real queries will miss.
-10. **Latin-style typography on Khmer.** `uppercase` + letter-spacing classes and a Latin serif heading font (Playfair Display) are used across screens; they do nothing for Khmer script.
+### Supersedes (Brief 1 → this file)
 
----
-
-## 2. Goal and non-goals
-
-**Goal:** a free, anonymous, Khmer-first information center on women's health that a woman with a low-end Android phone, limited data and limited reading time can use in under a minute.
-
-**Non-goals (remove, do not rebuild):** accounts or login, personal profile and due-date tracking, My Plan and reminders, premium or any limit on reading, Telegram account linking, research dashboards in the app, AI chat or any AI-written health content.
-
----
-
-## 3. Assumptions to confirm with the user (default shown)
-
-| # | Question | Default if no answer |
-|---|---|---|
-| A1 | Stay **pregnancy-focused**, or widen to women's health generally (family planning, postpartum, newborn, nutrition, mental health)? The user said "Cambodian women". | Build the structure so more topics can be added, but **publish only the existing pregnancy content**. |
-| A2 | "Data center" means an **information/knowledge hub**, not a dashboard of statistics. | Information hub. |
-| A3 | What exactly is disliked in the current look (colors, layout, tone, fonts)? | Redesign from scratch, but align with the FlowErs app palette (see §8). |
-| A4 | Is the Telegram reminder bot still used? Which username is real: `MaeFlowErsBot` or `FlowErs168bot`? | Do not delete the bot code; archive it (§10). |
-| A5 | Is research data collection a **requirement** (university, ethics approval)? | Anonymous, aggregate-only analytics; no user ids, no stored search text. |
-| A6 | Who in Cambodia reviews health content before publishing (doctor or midwife)? | Add a publish gate that needs a named reviewer (§6). |
-
----
-
-## 4. Rules for the agent
-
-1. **Never write, translate, summarise or "improve" medical content.** Move and structure what exists. New or changed health text must come from the team and be reviewed by a qualified person. If a page needs content that doesn't exist (e.g. emergency numbers), build the slot and show a clearly marked placeholder in dev only; never invent a phone number, dose, or threshold.
-2. **Do not delete the old app.** First create a git tag `legacy-v1` on the current commit, then delete on a new branch (`redesign`). Open a PR; do not push to `main` directly.
-3. One commit per phase step. Run `npm run lint` and `npm run build` before each commit.
-4. Test the way the users browse: mobile viewport, throttled network, a low-end Android profile. Take screenshots at 360×640.
-5. Keep the live URL working during the work (Vercel preview deploy for the branch).
-6. No secrets in the repo. Add `supabase/.temp/` to `.gitignore` if the folder is kept at all.
-7. Use only `npm` and a single lockfile (the FlowErs repo broke on an empty `bun.lock`).
-
----
-
-## 5. Target product
-
-### Pages
-
-| Route | Purpose |
+| Brief 1 | Now |
 |---|---|
-| `/` | Big search box, 5–6 icon tiles for categories, a red/very visible **"Warning signs: when to go to the health center now"** button, a "Listen" shortcut, links to the Telegram bot and the FlowErs app. |
-| `/c/:category` | List of articles in a category (title, one-line summary, audio icon if available). |
-| `/a/:slug` | Article: Khmer summary, key takeaway, important note, **Listen** (audio) if available, source card (organisation, link, "source is in English"), last reviewed, Share, Print. |
-| `/warning-signs` | The safety-critical article, always one tap from everywhere (header or fixed button). |
-| `/search?q=` | Results, tolerant of Khmer typing variants. |
-| `/about` | Who makes this, how content is chosen and reviewed, medical disclaimer, contact. |
+| §2 Non-goals | Tightened by §1 below (a hard "forbidden" list that CI enforces) |
+| §5 Features | Replaced by the keep / drop / later table in §1 |
+| §5 "Was this helpful?" vote; §7 aggregate analytics | **Removed.** These need a backend, which contradicts "no database" |
+| §6 "published requires `reviewed`" | Made **environment-based** (§4) |
+| §14 Telegram policy | Kept, plus the CI check below is now mandatory |
+| §15 Data and sync | **Final decisions** in §2 |
+| §11 Phase 5 | Defaults for each item in §3 and §4 |
 
-Navigation: at most 3–4 items (Home, Search, Warning signs, Language). No modal-driven flows; articles are real pages with real URLs so they can be shared in Telegram or Messenger and work with the browser Back button.
-
-### Features
-- **Search first.** Placeholder in Khmer (keep the existing «តើមានអ្វីដែលអ្នកចង់ស្វែងយល់ដែរឬទេ?»).
-- **Audio** for key articles (reuse the idea of the existing monthly voice messages). Plain `<audio>` with large play/pause and speed control; `preload="none"`.
-- **Browse by stage** (trimester or week) as a filter on existing `pregnancyWeeks` data. No account; the choice is remembered in `localStorage` only.
-- **Share:** native share sheet with a copy-link fallback, plus a QR code for each article (used on posters at health centers).
-- **Print/PDF-friendly layout** for each article (village health volunteers and clinics often hand out paper).
-- **"Was this helpful?"** anonymous thumbs up/down. The old `FeedbackCard` posts a star rating to a `feature_feedback` table; keep only the idea.
-- **Language:** Khmer by default, English toggle that remembers the choice; both languages available at the same URL (`?lang=en`).
+Everything else in Brief 1 (content schema, accessibility checklist, search, PWA, performance targets, design direction) stays as written.
 
 ---
 
-## 6. Content model and governance
+## 1. Feature scope lock
 
-Move content out of `.ts` files with long Khmer category strings into **one JSON file per article**, validated at build time.
+Mae answers one question: **"Where can I read trustworthy health information, in Khmer, on my phone?"** Anything that needs an account, remembers a person, reminds, tracks, sells or collects is out.
 
-```
-src/content/
-  site.json              # app name, links (telegram bot, FlowErs app), disclaimer text km/en
-  categories.json        # [{ slug, icon, label: {km,en}, order }]
-  articles/
-    nmchc-warning-signs.json
-    ...
-scripts/
-  validate-content.ts    # zod validation; fails the build on error
-  check-links.ts         # HEAD/GET every sources[].url; report non-200 (run in CI, weekly)
-```
+| Keep | Drop (delete code) | Later (not in this patch) |
+|---|---|---|
+| Article library, categories | My Plan, plan items, reminders | Read/unread ticks (local only) |
+| Khmer-aware search | Calendar export | Audio, only when files **and** permission exist (§3.2) |
+| Article page with source card (organisation, link, source language, last checked) | Accounts, login, onboarding wizard, profile | A real feedback channel (a contact link, not an in-app form) |
+| `/warning-signs` page | Due-date calculator, journey screen, baby sizes, flower visuals | More articles (§3.4) |
+| Khmer / English toggle | Weekly guidance (only weeks 8, 9, 10, 12 exist; it looks arbitrary) | |
+| Browse by trimester (from each article's `stage`) | Premium, entitlements, the 2-per-day limit, every upgrade popup | |
+| Share, print, QR for each article | Telegram account linking and every Telegram prompt | |
+| One Telegram bot card (Brief 1 §14) | Research dashboard, consent banner, event logging | |
+| "Open in FlowErs" link | "Helpful?" votes, star feedback, analytics events | |
 
-Suggested schema (zod):
+Monthly "Mom's voice" scripts: keep the text in `src/content/voice/` as **drafts**, not published, until audio exists and permission is confirmed (§3.2).
 
-```ts
-const Lang = z.object({ km: z.string().min(1), en: z.string().optional() });
+### P2 scope check (mandatory CI step)
 
-const Source = z.object({
-  organization: Lang,
-  url: z.string().url(),
-  language: z.enum(['km', 'en']),        // language of the linked document
-  checkedAt: z.string(),                 // ISO date the link was last opened by a human
-});
+Add `scripts/check-scope.sh`, run in CI and in `npm run lint`. It fails if any of these appear in `src/` (case-insensitive unless noted):
 
-export const Article = z.object({
-  slug: z.string().regex(/^[a-z0-9-]+$/),          // stable id used in URLs
-  status: z.enum(['draft', 'published', 'archived']),
-  category: z.string(),                            // must match a categories.json slug
-  title: Lang,
-  summary: Lang,
-  keyTakeaway: Lang.optional(),
-  importantNote: Lang.optional(),
-  stage: z.union([z.literal('all'), z.object({ fromWeek: z.number(), toWeek: z.number() })]),
-  safetyCritical: z.boolean().default(false),
-  sources: z.array(Source).min(1),
-  audio: z.object({ km: z.object({ src: z.string(), durationSec: z.number(), transcript: z.string() }) }).optional(),
-  reviewed: z.object({ by: z.string(), role: z.string(), date: z.string() }).nullable(),
-  updatedAt: z.string(),
-});
-```
+- `supabase`, `@google/genai`, `express`, `entitlement`, `premium`, `upgrade`, `is_premium`, `daily_usage`, `analytics`, `logEvent`, `consent`
+- `login`, `signup`, `password`, `onboarding`, `due_date`, `pregnancy_week`, `reminder`, `plan_item`
+- `telegram` **outside** `src/components/BotCard.tsx` and `src/content/site.json`
 
-Build rules (fail the build if broken):
-- `category` exists in `categories.json`; slugs are unique.
-- `status: 'published'` requires `reviewed !== null` (**recommended gate; the user's team should decide**).
-- Every `km` text is present; `en` optional but reported as a warning.
-- Every `audio.src` file exists in `public/audio/`.
-- Exactly one article is the `/warning-signs` page (`safetyCritical: true`).
+Allowed use of `localStorage`: exactly two keys, `mae.lang` and `mae.stage`. Anything else fails the check.
 
-Migration mapping from `PregnancyResource`: `id` → `slug` (drop the `res-` prefix), `titleKh/En` → `title`, `summaryKh/En` → `summary`, `keyTakeawayKh/En`, `importantNoteKh` → `keyTakeaway`/`importantNote`, `sourceName` + `sourceUrl` → `sources[0]`, `pregnancyWeeks` → `stage` (min and max), `is_safety_critical` → `safetyCritical`, free-text `category` → a new slug (map the 6 existing variants to 5 slugs, see below), `planSuggestions` → drop (My Plan is removed). Set `reviewed: null` for every migrated article until a reviewer is named.
-
-Suggested category slugs from the existing data: `nutrition`, `checkups`, `wellbeing`, `pregnancy-basics`, `birth-preparation` (merge the two "Preparation" variants); plus the safety-critical article is exposed at `/warning-signs`.
-
-Monthly voice messages become articles of a second kind (`type: 'voice-message'`) or a separate `voice/` collection; keep the Khmer and English scripts as the audio transcripts.
+**Done when:** `npm run lint` passes with the check, and `package.json` has none of `@supabase/supabase-js`, `@google/genai`, `express`, `dotenv`, `motion`.
 
 ---
 
-## 7. Accessibility for Cambodian women: requirements checklist
+## 2. Data decisions (final)
 
-**Language and script**
-- `<html lang="km">`; English fragments wrapped in `lang="en"`.
-- Self-host a Khmer-capable font as WOFF2 (e.g. Kantumruy Pro or Noto Sans Khmer, subsetted), `font-display: swap`, with a system Khmer fallback. Today the fonts come from Google Fonts (a blocking third-party request).
-- Body text at least 16–18px; Khmer line-height about 1.7+ (stacked subscript and vowel marks get clipped at tight line heights); no `uppercase`/`tracking-*` on Khmer.
-- Use Khmer numerals or Arabic numerals consistently. Pick one and follow the existing content.
+### 2.1 Runtime
 
-**Reading ability**
-- Short sentences, one idea per paragraph; icons and pictograms beside headings; a glossary or tap-to-explain for medical terms (content supplied by the team).
-- Every key article gets **audio** (the monthly scripts show the team already does this). Do not rely on text-to-speech for health content unless the team approves the voice.
+- No database, no API, no server code in the Mae repo. All content is static JSON in `src/content/`. Publishing = commit, CI validates, Vercel deploys.
+- **No environment variables are required to run the site.** Build-time only: `PUBLISH_REQUIRES_REVIEW` (§4).
+- Nothing is shared between Mae and FlowErs except links (Brief 1 §12).
 
-**Low-end phones and data**
-- Initial page ≤ about 100 KB of JavaScript (gzipped) and no images required to read an article; this is a target to measure, not a promise.
-- Lighthouse mobile (throttled) targets: Performance ≥ 90, Accessibility ≥ 95.
-- PWA with `vite-plugin-pwa`: cache the shell and all article text so it works **offline** after the first visit; audio cached only when the user taps "Download".
-- Lazy-load audio; no autoplay; no animation libraries (drop `motion`).
+### 2.2 Existing Supabase project (`flowers-mvp`)
 
-**Usability and inclusion**
-- Touch targets ≥ 44×44px, WCAG AA contrast (check the final palette with a tool, not by eye), visible focus rings, full keyboard and screen-reader support, text resizable to 200%.
-- Do not use color alone to mean "danger"; pair the warning button with an icon and the words.
-- **No login, no paywall, no consent wall** before reading.
-- Privacy: no accounts, no personal data. Analytics is anonymous and aggregate only: page views, search **counts** (do not store the typed text with an identity), audio plays, "helpful" votes. Prefer a cookie-less tool or a tiny self-built counter. Decide with the team whether any research requirement (A5) changes this.
+It still holds people's data. Its tables, from the old code: `users`, `plan_items`, `telegram_links`, `link_codes`, `user_read_resources`, `analytics_events`, `feature_feedback`, `entitlements`, `daily_usage`, `resources`. The login accounts themselves live in Supabase's separate auth system.
 
-**Channels people already use**
-- Link to the Telegram bot and the FlowErs app; ask the team which other channels their users rely on (e.g. Messenger) and add share links for those. Pages need per-article Open Graph tags so shared links preview correctly (see §9).
+**Decision: do not migrate accounts or plans into FlowErs.** The data models differ, password hashes are not portable, and FlowErs already covers reminders and overview. Users simply sign up in FlowErs.
 
----
+**This is a human cutover, not an agent task.** The agent must not connect to Supabase, run SQL against it or delete anything. Aj does the steps below.
 
-## 8. Design direction
+**Cutover checklist (in order, do not skip):**
 
-The user dislikes most of the current look (olive green `#88A04D`, cream `#FAF9F5`, serif headings, many popups). Do not restyle it; start over.
+1. **Count real users** (exclude test accounts). In the Supabase SQL editor: `select count(*) from public.users;` Tell the team the number.
+2. **Export everything privately.** Easiest: Dashboard → Table Editor → export each table as CSV. Alternatively, `pg_dump --data-only --no-owner "<connection string from the dashboard>" > mae-backup.sql`. Store the files encrypted (e.g. a password-protected archive) in a private place. **Never in a git repo, never in chat.**
+3. **Open the files** and check they contain data. A backup nobody opened is not a backup.
+4. **Post a notice on the old site** (draft below) at least one week before step 5. Pick the deletion date and put it in the notice.
+5. **After the notice period and with Aj's explicit go-ahead,** delete personal data. In the SQL editor (destructive, run only once, only by Aj):
+   ```sql
+   truncate table public.plan_items, public.telegram_links, public.link_codes,
+     public.user_read_resources, public.analytics_events, public.feature_feedback,
+     public.daily_usage, public.entitlements restart identity cascade;
+   delete from public.users;
+   ```
+   Then delete the login accounts: Dashboard → Authentication → Users (select all → delete).
+6. **Shut down:** pause or delete the Supabase project, rotate or delete its API keys, and if the bot code is retired, revoke the bot token in Telegram's BotFather.
+7. **Only now** point the domain at the new site.
 
-- **Align with the FlowErs app** so the two feel like one product: teal `#2F6F8F`, mint `#AEE3D8`, pink accent `#FA6B90`, soft blush `#FDDEEC` on a warm white `#FEFAFB` (taken from the FlowErs repo). Verify contrast of text on each color before using it.
-- Calm, large, uncluttered: one accent color, big type, generous spacing, icon-led category tiles, rounded cards.
-- Warning-signs button is the only strongly saturated element.
-- Before building everything, produce **two quick mockups** of the home page and one article page (HTML or screenshots at 360px wide) and let the user choose. Ask what they dislike (A3) first.
+**Notice text (English, then Khmer). The Khmer was drafted by me and must be checked by a native speaker before use:**
 
----
+> Mae is changing into a free health information center that needs no account. Your Mae account and saved data will be deleted on **[DD/MM/YYYY]**. For reminders and pregnancy tracking, please use the FlowErs app.
 
-## 9. Technical plan
+> កម្មវិធី ម៉ែ កំពុងប្តូរទៅជាមជ្ឈមណ្ឌលព័ត៌មានសុខភាពឥតគិតថ្លៃ ដែលមិនត្រូវការគណនី។ គណនី និងទិន្នន័យដែលបានរក្សាទុករបស់អ្នកនឹងត្រូវលុបនៅថ្ងៃទី **[ថ្ងៃ/ខែ/ឆ្នាំ]**។ សម្រាប់ការរំលឹក និងការតាមដានផ្ទៃពោះ សូមប្រើកម្មវិធី FlowErs។
 
-**Stack:** keep Vite + React 19 + Tailwind 4 (the team already knows it, same as FlowErs). Add `react-router`, `zod` (build-time only), `minisearch` (or Fuse.js), `vite-plugin-pwa`.
+### 2.3 Who edits content
 
-**Structure**
-```
-src/
-  app/ (router, layout)   pages/ (Home, Category, Article, Search, WarningSigns, About)
-  components/ (ArticleCard, CategoryTile, AudioPlayer, SourceCard, ShareButton, LangToggle)
-  content/ (see §6)       lib/ (search.ts, i18n.ts, content.ts)
-```
-State: a tiny language context and `localStorage` for language and stage filter. No global store, no Supabase.
+**Option A from Brief 1 §15** (edit the JSON on GitHub, CI validates, Vercel redeploys). Add a short `CONTRIBUTING.md` for non-developers: how to edit one article in the GitHub web editor, what each field means, and what a failed CI check looks like. Revisit a form-based editor only if the team asks.
 
-**Search (Khmer-aware)**
-1. Normalise both the index text and the query: Unicode NFC, strip zero-width characters (U+200B, U+200C, U+200D), collapse whitespace, lowercase Latin.
-2. Tokenise Khmer with `Intl.Segmenter('km', { granularity: 'word' })` when available. **Verify support** on the oldest Android WebView you target; fall back to character trigrams if missing.
-3. Build the index **at build time** into a JSON file, load it lazily on first search. Fuzzy matching on, prefix matching on.
-4. Test with real queries typed on a phone keyboard (e.g. «អាហារ», «ពិនិត្យ», «សម្រាល») and with typing variants.
+### 2.4 Measurement
 
-**Per-article link previews:** Telegram and Messenger read Open Graph tags from the raw HTML, which a client-rendered SPA cannot provide. Add a small build step that writes `/a/<slug>/index.html` (copy of `index.html` with that article's title, description and `og:url`), or use a prerender plugin. Add `vercel.json` rewrites for the SPA fallback.
-
-**Hosting:** keep Vercel. No environment variables needed (content is static). Add a CI job (GitHub Action) that runs `validate-content` and `check-links` on every PR and weekly.
-
-**Dependencies to remove:** `@supabase/supabase-js`, `@google/genai`, `express`, `dotenv`, `motion`, `tsx` (unless a script needs it), `esbuild` pin, and the leftover AI Studio items in `vite.config.ts` and `metadata.json`. Rename the package to `mae-info-center`. Rewrite the README.
+None built in. If the host offers cookie-less page-view counts, use them. Any research data collection (university, ethics) is a **separate project with its own consent design**, not a feature of Mae.
 
 ---
 
-## 10. Cleanup: keep, rewrite, delete
+## 3. Defaults for the agent's open questions
 
-| Action | Files |
-|---|---|
-| **Keep as data** | `src/data/resources.ts`, `monthlyMessages.ts`, `weeklyGuidance.ts`, `babySizes.ts` (convert per §6, then delete the originals) |
-| **Rewrite (new UI)** | `App.tsx`, all screens, `ResourceCard`, `ResourceModal` (becomes the Article page), `AudioPlayer` (replace with a small accessible player), `index.css`, `index.html` |
-| **Delete** | `AuthModal`, `OnboardingModal`, `PreLoginWizard`, `UpgradeModal`, `AddToPlanSheet`, `PlanScreen`, `PlanContext`, `PlanItemCard`, `ProfileScreen`, `JourneyScreen`, `ContentEntryModal`, `AnalyticsDashboardModal`, `ConsentBanner`, `DueDate`, `BabyGrowthCard`, `FruitSize`, `FlowerVisual`, `LittleReminder`, `TelegramLink`, `FeedbackCard`, `TopicCard/TopicModal`, `src/context/AppContext.tsx`, `src/lib/entitlements.ts`, `supabase.ts`, `dueDate.ts` |
-| **Archive then remove from `main`** | `supabase/` (SQL and edge functions). They stay reachable through the `legacy-v1` tag. Ask the user (A4) before deleting the bot code. |
+Aj's answers override these. The agent implements the default now and does not wait.
+
+### 3.1 Reviewer (A6 / Q5)
+
+- Each article needs **one qualified person** (a midwife or doctor, not a member of the dev team) to compare the Khmer summary with its source and sign off: **name, role, date**. The source language must be one they can read.
+- Priority order for review: (1) `/warning-signs`, (2) anything with numbers, schedules or "when to seek care", (3) the rest.
+- Until a reviewer is named, every article keeps `reviewed: null`. See §4 for what that means for builds.
+- Show "Reviewed by [name], [role], [date]" only when `reviewed` exists. Never show a reviewer who did not agree to be named; if they prefer, show their organisation instead.
+- **Owner: Aj.** Ask the FlowErs doctor and hospital contacts first.
+
+### 3.2 Audio (A: MP3 files, Q6)
+
+- Default: **launch with no audio.** The `audio` field stays in the schema. If the file is missing, **hide the player**; never render a broken one.
+- The repo's `public/audio/README.md` is titled "PSI Voice Audio Files", so some voices may belong to PSI. Until that is clarified in writing, **do not publish any of the existing recordings**.
+- Permission checklist before any audio goes live: who is the speaker, did they give written consent to publish, does the recording match the **reviewed** Khmer text (a spoken version can change meaning, so it needs the same review), and are there any third-party logos or music.
+- Export settings are in the README (mono, 64 kbps).
+- **Owner: Aj**, to find out who recorded them.
+
+### 3.3 Domain (Q7)
+
+- Decide **before printing any QR code or poster.**
+- Register the domain under a **team-owned email**, not a personal one.
+- Implement now: `src/content/site.json` → `baseUrl`. Every QR code, canonical URL and Open Graph URL is built from it. Changing the domain later is then one edit.
+- When final, change `INFO_PORTAL_URL` in the FlowErs app's `InfoAccessView.tsx` (a separate repo; Aj or I will provide the patch).
+- I have not checked how `.kh` domains are registered. Ask before assuming.
+
+### 3.4 Missing content (Phase 5)
+
+- **Do not fill every week.** Organise by topic and trimester.
+- Priority for new articles, each a **human-written Khmer summary of an official source, then reviewed**: (1) warning signs, complete; (2) antenatal visit schedule; (3) iron and folic acid, nutrition; (4) preparing for delivery and where to go; (5) newborn danger signs and breastfeeding; (6) postpartum care and family planning.
+- Ask NMCHC, RHAC and PSI whether **Khmer-language originals** exist for the English-only PDFs now linked. Prefer them.
+- **The agent must not write, translate or "improve" any health text.**
+
+### 3.5 Emergency information
+
+- Show a phone number **only if** it has a source and a verification date. FlowErs currently hardcodes `tel:119` as "Call Ambulance" (`EmergencyModal.tsx`); I **cannot verify** that number. Whoever reviews should confirm it against an official source.
+- In `site.json`:
+  ```json
+  "emergency": [
+    { "label": { "km": "...", "en": "..." }, "phone": "...", "source": "...", "verifiedAt": "YYYY-MM-DD" }
+  ]
+  ```
+  Agent leaves the values empty with a `TODO`; Aj fills them from the verified source.
+- `/warning-signs` always shows "go to your nearest health center" text from the **reviewed** article, whether or not a number is present.
+- The same verified numbers should be used in FlowErs. Ideally the value is defined once and copied, not typed twice.
+- Freshness: `npm run release-check` fails if any `verifiedAt` is older than 180 days. Normal CI only warns, so deploys do not break on a calendar date.
 
 ---
 
-## 11. Phased plan and acceptance criteria
+## 4. Review gate by environment
 
-**Phase 0 — Prepare (0.5 day)**
-- Tag `legacy-v1`; branch `redesign`; get answers to §3; the user checks Vercel env vars (risk 3) and whether `/audio/month-N.mp3` files exist on the live site.
-- Done when: tag exists and the questions are answered or defaults are accepted in writing.
+| Environment | `PUBLISH_REQUIRES_REVIEW` | Behaviour |
+|---|---|---|
+| Local, PR previews | `false` | All articles build and show. Every unreviewed article shows a visible **"Draft — not yet reviewed"** label, and the page has `<meta name="robots" content="noindex">`. |
+| Production (`main`) | `true` | The build **fails** if any published article has `reviewed: null`. |
 
-**Phase 1 — Content foundation**
-- Create the schema, validation script, `categories.json`; migrate the 11 articles and 9 voice scripts; set `reviewed: null`.
-- Done when: `npm run validate-content` passes; the Wellbeing category now contains its 2 articles; build fails if a category or audio file is missing.
-
-**Phase 2 — New app shell and pages**
-- Delete the §10 list; build the six routes, language toggle, search, article page, share/print, warning-signs shortcut.
-- Done when: all pages work with no login and no network except content/audio; Khmer search finds «អាហារ» and «ពិនិត្យ» articles; every page has a unique URL and title.
-
-**Phase 3 — Accessibility, performance, offline**
-- Self-hosted Khmer font, PWA offline cache, Lighthouse and axe checks, 360px screenshots, per-article OG pages.
-- Done when: Lighthouse mobile Performance ≥ 90 and Accessibility ≥ 95 on Slow 4G; article readable offline after one visit; shared links preview correctly in Telegram.
-
-**Phase 4 — Connect to FlowErs and ship**
-- Point the FlowErs "Information Access" page at the new URL (see §12); update README; deploy; configure a custom domain if the team has one.
-- Done when: the QR and links in the FlowErs app open the new site; `main` deploys to Vercel from the PR.
-
-**Phase 5 — Content operations (team decision, not agent work)**
-- Name reviewers; add content for the missing weeks and topics; replace English-only source links with Khmer versions where they exist; supply real emergency contact information if the team wants it shown.
+Consequence: **do not merge `redesign` into `main` until at least the reviewed set is decided.** The old site keeps running until then. If the team wants a partial launch, mark only the reviewed articles `published` and leave the rest `draft` (drafts are excluded from the production build).
 
 ---
 
-## 12. Connection to the FlowErs app
+## 5. Patch 2 tasks (agent)
 
-- The FlowErs app already shows the portal link and a QR picture on its Info tab (`InfoAccessView.tsx`, constant `INFO_PORTAL_URL`). If the domain changes, update that constant and the QR image.
-- Keep the same palette (§8) and the same bot link so the two products feel like one.
-- Optional later: a deep link from FlowErs article references to `/a/<slug>`.
+One commit per task. Run `npm run lint` and `npm run build` before each commit.
+
+| # | Task | Done when |
+|---|---|---|
+| **P2-1** | Push `redesign` to GitHub (`git push -u origin redesign`), open a PR to `main`, and confirm a Vercel preview deploy exists. **Do not merge.** | The branch is visible on GitHub; the preview URL loads |
+| **P2-2** | Scope purge: remove everything in §1's Drop column; add `scripts/check-scope.sh` and wire it into `lint` and CI. | The check passes; the forbidden list is absent from `src/` |
+| **P2-3** | Remove Supabase and template leftovers: dependencies, `src/lib/supabase.ts`, the `supabase/` folder (archived under tag `legacy-v1`), `.env*` references, `metadata.json`, `@google/genai`. Add `supabase/.temp/` to `.gitignore` if any trace remains. | `npm ls` shows none of them; the build needs no environment variables |
+| **P2-4** | Review gate (§4): `PUBLISH_REQUIRES_REVIEW`, the "Draft — not yet reviewed" label, `noindex` on previews, "Reviewed by…" badge. | A production build fails with an unreviewed published article and passes with `draft` status; the preview shows the label |
+| **P2-5** | Audio slot (§3.2): hide the player when the file is missing; the validation script checks that every referenced file exists. Existing voice scripts moved to `src/content/voice/` as `draft`. | No page ever shows a broken audio player |
+| **P2-6** | `site.json` → `baseUrl` and `emergency` (§3.3 and §3.5); QR, canonical and Open Graph URLs built from `baseUrl`; `release-check` script for `verifiedAt`. | Changing `baseUrl` changes every QR and canonical URL |
+| **P2-7** | Telegram rules (Brief 1 §14): `BotCard` only; copy line left as `TODO` for Aj. | The check-scope rule for `telegram` passes |
+| **P2-8** | `CONTRIBUTING.md` (§2.3) and a rewritten `README.md` that matches reality (static site, no env vars, how to validate content). | A non-developer can follow it to edit one article |
+| **P2-9** | Final report to Aj: list of files deleted, dependencies removed, bundle size, Lighthouse scores, and anything not done. | Report is in the PR description |
+
+The cutover (§2.2) and the questions in §6 are **not agent tasks**.
 
 ---
 
-## 13. Open questions for the user (answer before Phase 2)
+## 6. Decisions only Aj can make
 
-1. A1 — pregnancy only, or women's health more broadly?
-2. A3 — what specifically do you dislike (colors, layout, tone, fonts, number of popups)?
-3. A4 — is the Telegram reminder bot in use, and which username is real?
-4. A5 — is research telemetry required by your university or an ethics approval?
-5. A6 — who can review health content, and is a "reviewed" gate before publishing acceptable?
-6. Do the mp3 files exist, and who recorded them (rights and consent to publish)?
-7. Do you want a custom domain instead of `mae-app-byflowers.vercel.app`?
+| # | Decision | Needed before |
+|---|---|---|
+| 1 | Named reviewer(s) and who is contacted first | Merging to `main` |
+| 2 | Who recorded the MP3s, and written permission | Publishing any audio |
+| 3 | Domain name and who owns the registration | Printing any QR or poster |
+| 4 | The verified emergency number(s) and their source | Showing any number |
+| 5 | One-line truth about what the Telegram bot does today (and the real bot name) | The bot card copy |
+| 6 | Real user count and the deletion date | Cutover step 4 |
+| 7 | Who edits articles after launch | Handover |
+
+---
+
+## 7. What I could not verify
+
+- The contents of the `redesign` branch (not on GitHub).
+- Whether `/audio/month-N.mp3` exists on the live site (open `/audio/month-1.mp3` on the live URL to check).
+- Whether the live Vercel build has Supabase environment variables set (Brief 1, risk 3).
+- Whether the bot's daily reminder function is scheduled in the Supabase dashboard.
+- The accuracy of any Khmer medical text, and the Khmer notice above. A qualified Khmer-speaking reviewer must check both.
+- That 119 is the correct ambulance number.
