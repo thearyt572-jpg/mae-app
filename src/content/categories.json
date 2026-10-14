@@ -1,0 +1,7 @@
+[
+  {"slug":"nutrition","icon":"leaf","label":{"km":"អាហារូបត្ថម្ភ","en":"Nutrition"},"order":1},
+  {"slug":"checkups","icon":"stethoscope","label":{"km":"ការពิน�ITUYS","en":"Checkups"},"order":2},
+  {"slug":"wellbeing","icon":"heart","label":{"km":"ស health","en":"Wellbeing"},"order":3},
+  {"slug":"pregnancy-basics","icon":"baby","label":{"km":"ម基础","en":"Basics"},"order":4},
+  {"slug":"birth-preparation","icon":"home","label":{"km":"เตรียมคลอด","en":"Birth Prep"},"order":5}
+]
