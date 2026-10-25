@@ -3,7 +3,7 @@
  * Plan Item Card
  *
  * Card for an individual plan item with checkbox toggle, delete button,
- * and gentle reminder tags.
+ * and source/date tags.
  */
 
 import React from 'react';

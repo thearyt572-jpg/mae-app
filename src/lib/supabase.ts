@@ -5,39 +5,12 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Create mock Supabase client for environments without configured backend
 const createMockClient = () => {
-  const MOCK_USERS_KEY = 'mae_mock_auth_users';
   const MOCK_PROFILES_KEY = 'mae_mock_user_profiles';
-  const MOCK_LINK_CODES_KEY = 'mae_mock_link_codes';
-  const MOCK_TELEGRAM_LINKS_KEY = 'mae_mock_telegram_links';
   const authListeners: Set<(event: string, session: any) => void> = new Set();
-
-  const getStoredUsers = (): Record<string, { email: string; password?: string; id: string }> => {
-    try {
-      return JSON.parse(localStorage.getItem(MOCK_USERS_KEY) || '{}');
-    } catch {
-      return {};
-    }
-  };
 
   const getStoredProfiles = (): Record<string, any> => {
     try {
       return JSON.parse(localStorage.getItem(MOCK_PROFILES_KEY) || '{}');
-    } catch {
-      return {};
-    }
-  };
-
-  const getStoredLinkCodes = (): Record<string, any> => {
-    try {
-      return JSON.parse(localStorage.getItem(MOCK_LINK_CODES_KEY) || '{}');
-    } catch {
-      return {};
-    }
-  };
-
-  const getStoredTelegramLinks = (): Record<string, any> => {
-    try {
-      return JSON.parse(localStorage.getItem(MOCK_TELEGRAM_LINKS_KEY) || '{}');
     } catch {
       return {};
     }
@@ -87,41 +60,12 @@ const createMockClient = () => {
           },
         };
       },
-      signUp: async ({ email, password }: { email: string; password?: string }) => {
-        const users = getStoredUsers();
-        const cleanEmail = email.toLowerCase().trim();
-        const existing = Object.values(users).find((u) => u.email === cleanEmail);
-        const id = existing?.id || 'usr_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
-        users[id] = { id, email: cleanEmail, password };
-        try {
-          localStorage.setItem(MOCK_USERS_KEY, JSON.stringify(users));
-        } catch {}
-        const user = { id, email: cleanEmail };
+      signInAnonymously: async () => {
+        const id = 'usr_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+        const user = { id, email: '', is_anonymous: true };
         const session = { user, access_token: 'mock-token' };
         notifyAuthChange('SIGNED_IN', session);
-        return {
-          data: { user, session },
-          error: null,
-        };
-      },
-      signInWithPassword: async ({ email, password }: { email: string; password?: string }) => {
-        const users = getStoredUsers();
-        const cleanEmail = email.toLowerCase().trim();
-        const match = Object.values(users).find((u) => u.email === cleanEmail);
-        const id = match?.id || 'usr_' + Date.now().toString(36);
-        if (!match) {
-          users[id] = { id, email: cleanEmail, password };
-          try {
-            localStorage.setItem(MOCK_USERS_KEY, JSON.stringify(users));
-          } catch {}
-        }
-        const user = { id, email: cleanEmail };
-        const session = { user, access_token: 'mock-token' };
-        notifyAuthChange('SIGNED_IN', session);
-        return {
-          data: { user, session },
-          error: null,
-        };
+        return { data: { user, session }, error: null };
       },
       signOut: async () => {
         notifyAuthChange('SIGNED_OUT', null);
@@ -132,44 +76,12 @@ const createMockClient = () => {
       let filterCol: string | null = null;
       let filterVal: any = null;
       let lastInsertedRows: any[] = [];
-      let isDeleteOp = false;
-
-      const performDeleteIfReady = () => {
-        if (!isDeleteOp || !filterCol) return;
-        if (table === 'link_codes') {
-          const codes = getStoredLinkCodes();
-          if (filterCol === 'user_id') {
-            Object.keys(codes).forEach((k) => {
-              if (codes[k].user_id === filterVal) delete codes[k];
-            });
-          } else if (filterCol === 'code') {
-            delete codes[filterVal];
-          }
-          try {
-            localStorage.setItem(MOCK_LINK_CODES_KEY, JSON.stringify(codes));
-          } catch {}
-        }
-        if (table === 'telegram_links') {
-          const links = getStoredTelegramLinks();
-          if (filterCol === 'user_id') {
-            delete links[filterVal];
-          } else if (filterCol === 'chat_id') {
-            Object.keys(links).forEach((k) => {
-              if (links[k].chat_id === filterVal) delete links[k];
-            });
-          }
-          try {
-            localStorage.setItem(MOCK_TELEGRAM_LINKS_KEY, JSON.stringify(links));
-          } catch {}
-        }
-      };
 
       const chain: any = {
         select: (_cols?: string) => chain,
         eq: (col: string, val: any) => {
           filterCol = col;
           filterVal = val;
-          performDeleteIfReady();
           return chain;
         },
         neq: () => chain,
@@ -188,18 +100,6 @@ const createMockClient = () => {
             const prof = profiles[filterVal];
             return { data: prof ? { is_premium: !!prof.is_premium } : null, error: null };
           }
-          if (table === 'telegram_links' && filterCol === 'user_id') {
-            const links = getStoredTelegramLinks();
-            return { data: links[filterVal] || null, error: null };
-          }
-          if (table === 'link_codes' && filterCol === 'code') {
-            const codes = getStoredLinkCodes();
-            const record = codes[filterVal];
-            if (record && new Date(record.expires_at) > new Date()) {
-              return { data: record, error: null };
-            }
-            return { data: null, error: null };
-          }
           return { data: null, error: null };
         },
         single: async () => {
@@ -207,32 +107,10 @@ const createMockClient = () => {
             const profiles = getStoredProfiles();
             return { data: profiles[filterVal] || null, error: null };
           }
-          if (table === 'telegram_links' && filterCol === 'user_id') {
-            const links = getStoredTelegramLinks();
-            return { data: links[filterVal] || null, error: null };
-          }
           return { data: null, error: null };
         },
         insert: (row: any) => {
           const rows = Array.isArray(row) ? row : [row];
-          if (table === 'link_codes') {
-            const codes = getStoredLinkCodes();
-            rows.forEach((r) => {
-              if (r.code) codes[r.code] = r;
-            });
-            try {
-              localStorage.setItem(MOCK_LINK_CODES_KEY, JSON.stringify(codes));
-            } catch {}
-          }
-          if (table === 'telegram_links') {
-            const links = getStoredTelegramLinks();
-            rows.forEach((r) => {
-              if (r.user_id) links[r.user_id] = r;
-            });
-            try {
-              localStorage.setItem(MOCK_TELEGRAM_LINKS_KEY, JSON.stringify(links));
-            } catch {}
-          }
           lastInsertedRows = rows.map((r) => ({
             ...r,
             id: r.id || 'mock_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
@@ -241,11 +119,7 @@ const createMockClient = () => {
           return chain;
         },
         update: (_updates: any) => chain,
-        delete: () => {
-          isDeleteOp = true;
-          performDeleteIfReady();
-          return chain;
-        },
+        delete: () => chain,
         upsert: async (row: any) => {
           if (table === 'users' && row?.id) {
             const profiles = getStoredProfiles();
@@ -254,17 +128,9 @@ const createMockClient = () => {
               localStorage.setItem(MOCK_PROFILES_KEY, JSON.stringify(profiles));
             } catch {}
           }
-          if (table === 'telegram_links' && row?.user_id) {
-            const links = getStoredTelegramLinks();
-            links[row.user_id] = row;
-            try {
-              localStorage.setItem(MOCK_TELEGRAM_LINKS_KEY, JSON.stringify(links));
-            } catch {}
-          }
           return { error: null, data: null };
         },
         then: (onfulfilled?: (value: { data: any[] | null; error: null }) => any) => {
-          performDeleteIfReady();
           const result = lastInsertedRows.length > 0 ? lastInsertedRows : null;
           return Promise.resolve({ data: result, error: null }).then(onfulfilled);
         },

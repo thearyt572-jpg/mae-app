@@ -27,6 +27,8 @@ import {
   RotateCcw,
   CheckCircle2,
   ChevronRight,
+  Volume2,
+  Headphones,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { BabyGrowthCard } from '../components/BabyGrowthCard';
@@ -120,6 +122,11 @@ export const JourneyScreen: React.FC = () => {
       (r) => Array.isArray(r.pregnancyWeeks) && r.pregnancyWeeks.includes(viewedWeek)
     );
   }, [resources, viewedWeek]);
+
+  // Audio resources for this viewed week (e.g. Preparing for Breastfeeding)
+  const weekAudioResources = useMemo(() => {
+    return matchingArticles.filter((r) => Boolean(r.audioUrl));
+  }, [matchingArticles]);
 
   // Handle Month Selection: updates selectedMonth and sets viewedWeek to the start of that month (or stays if already in range)
   const handleSelectMonth = (monthNumber: number) => {
@@ -250,6 +257,9 @@ export const JourneyScreen: React.FC = () => {
             {activeMonthConfig.weeks.map((weekNum) => {
               const isSelected = viewedWeek === weekNum;
               const isUserRealWeek = currentWeek === weekNum;
+              const hasAudioThisWeek = resources.some(
+                (r) => Boolean(r.audioUrl) && Array.isArray(r.pregnancyWeeks) && r.pregnancyWeeks.includes(weekNum)
+              );
 
               return (
                 <button
@@ -268,6 +278,18 @@ export const JourneyScreen: React.FC = () => {
                     {t('សប្ដាហ៍', 'Wk')}
                   </span>
                   <span className="text-base font-mono leading-tight">{weekNum}</span>
+
+                  {/* Audio badge indicating voice guide is available for this week */}
+                  {hasAudioThisWeek && (
+                    <span
+                      className={`absolute -top-1.5 -left-1 px-1 py-0.5 rounded-full text-[9px] font-bold shadow-2xs flex items-center justify-center ${
+                        isSelected ? 'bg-[#88A04D] text-white' : 'bg-[#5C7034] text-white'
+                      }`}
+                      title={t('មានសារសំឡេងពិតប្រាកដ', 'Audio message available')}
+                    >
+                      <Volume2 className="w-2.5 h-2.5" />
+                    </span>
+                  )}
 
                   {/* Task 3: Marker on the user's real week */}
                   {isUserRealWeek && (
@@ -321,6 +343,30 @@ export const JourneyScreen: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Featured Week's Voice Guide (Real Recorded Audio from Supabase Storage) */}
+      {weekAudioResources.length > 0 && (
+        <section className="space-y-2 animate-fade-in">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-[#5C7034] uppercase tracking-wider">
+            <Volume2 className="w-4 h-4 text-[#88A04D]" />
+            <span>{t(`សារសំឡេងណែនាំសម្រាប់សប្ដាហ៍ទី ${viewedWeek} 🎧`, `Audio Guide for Week ${viewedWeek} 🎧`)}</span>
+          </div>
+          {weekAudioResources.map((res) => (
+            <AudioPlayer
+              key={res.id}
+              title={t(res.titleKh, res.titleEn)}
+              subtitle={t(res.sourceName, res.sourceName)}
+              transcript={res.audioTranscriptKh || res.summaryKh}
+              audioUrl={res.audioUrl}
+              durationStr={res.audioDuration || '2:15'}
+              monthOrWeek={viewedWeek}
+              sourceType="voice_message"
+              sourceId={res.id}
+              planSuggestions={res.planSuggestions}
+            />
+          ))}
+        </section>
+      )}
 
       {/* Task 4: Month's Voice Message */}
       <section>

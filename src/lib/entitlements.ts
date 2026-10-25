@@ -8,8 +8,7 @@
  * - Safety-Critical & PSI Voice: Items marked `is_safety_critical` and all PSI
  *   voice messages are ALWAYS 100% free and NEVER counted against the daily limit.
  * - Re-opening: Opening the same summary multiple times in the same day does not count again.
- * - Premium (Entitlements table): My Plan features (adding items to routine,
- *   converting to reminders, calendar export, and morning Telegram alerts).
+ * - Premium (Entitlements table): My Plan features (adding items to My Plan).
  * - Edit `FREE_LIMITS.dailySummaries` to change the daily summary cap (set to 0 for unlimited).
  */
 
@@ -147,34 +146,4 @@ export function canOpenSummary(
  */
 export function canUsePlan(isPremium: boolean = false): FeatureAccessResult {
   return { allowed: isPremium };
-}
-
-/**
- * Rule: Reminder features (in-app, Telegram, calendar export) require premium.
- */
-export function canUseReminders(isPremium: boolean = false): FeatureAccessResult {
-  return { allowed: isPremium };
-}
-
-/**
- * Generates a temporary single-use Telegram connection token (e.g. FLOW-7K29).
- * Cryptographically random, 15-minute validity, case-insensitive.
- */
-export function generateTelegramConnectionCode(): string {
-  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-  let randomPart = '';
-  
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    const bytes = new Uint8Array(4);
-    crypto.getRandomValues(bytes);
-    for (let i = 0; i < 4; i++) {
-      randomPart += chars.charAt(bytes[i] % chars.length);
-    }
-  } else {
-    for (let i = 0; i < 4; i++) {
-      randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-  }
-  
-  return `FLOW-${randomPart}`;
 }

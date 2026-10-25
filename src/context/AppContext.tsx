@@ -11,10 +11,10 @@
  * user's mother. Address the user as "you" (អ្នក), never as "កូន" (child).
  *
  * LIVE-DATA NOTES:
- * - There is no demo account. Every user signs up for real.
- * - signup() / login() / logout() use Supabase Auth (email + password). Testers may
- *   use a made-up email: nothing is ever sent to it. The profile (name, week, etc.)
- *   is saved to the Supabase `users` table, one row per person.
+ * - There are no accounts: no sign-up, login or logout. startApp() gives each person
+ *   a Supabase anonymous session (a real user id, no email or password) so the
+ *   database rules (auth.uid()) still work. The profile (name, week, etc.) is saved
+ *   to the Supabase `users` table, one row per person, and stays on this device.
  * - Analytics events are only recorded when analyticsConsent === 'granted'.
  * - Resources are loaded from the Supabase `resources` table (Published rows).
  *   The local list is kept as a fallback for weak or missing internet.
@@ -45,7 +45,6 @@ import {
   FREE_LIMITS,
   canOpenSummary as evaluateCanOpenSummary,
   canUsePlan as evaluateCanUsePlan,
-  canUseReminders as evaluateCanUseReminders,
   getCambodiaDateStr,
   SummaryAccessResult,
   FeatureAccessResult,
@@ -74,9 +73,7 @@ interface AppContextType {
   // User Session
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
-  signup: (name: string, email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  startApp: () => Promise<void>;
   updateUserPreferences: (updates: Partial<User>) => void;
 
   // Onboarding
@@ -85,9 +82,7 @@ interface AppContextType {
   completeOnboarding: (data: {
     name: string;
     pregnancy_week: number;
-    due_date?: string;
     language: UserLanguage;
-    notification_preference: NotificationPreference;
   }) => void;
 
   // Week, Month & Guidance
@@ -124,10 +119,6 @@ interface AppContextType {
   setIsContentEntryOpen: (open: boolean) => void;
   editingResource: PregnancyResource | null;
   setEditingResource: (res: PregnancyResource | null) => void;
-  isAuthModalOpen: boolean;
-  setIsAuthModalOpen: (open: boolean) => void;
-  authModalMode: 'login' | 'signup';
-  setAuthModalMode: (mode: 'login' | 'signup') => void;
 
   // Data & cookie consent
   analyticsConsent: ConsentStatus;
@@ -158,7 +149,6 @@ interface AppContextType {
   isPremium: boolean;
   canOpenSummary: (resource: ResourceSummaryItem) => SummaryAccessResult;
   canUsePlan: () => FeatureAccessResult;
-  canUseReminders: () => FeatureAccessResult;
   trackOpenedSummary: (resource: ResourceSummaryItem) => Promise<void>;
   todayOpenedSummaries: string[];
   dailySummariesLimit: number;
@@ -236,7 +226,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const stored = localStorage.getItem(STORAGE_KEY_RESOURCES);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const storedMap = new Map(parsed.map((r: any) => [r.id, r]));
+          // Merge to ensure latest built-in audio URLs and transcripts are never masked by old cache
+          const merged = INITIAL_PREGNANCY_RESOURCES.map((init) => {
+            const fromStorage = storedMap.get(init.id);
+            if (!fromStorage) return init;
+            return {
+              ...init,
+              ...fromStorage,
+              audioUrl: init.audioUrl || fromStorage.audioUrl,
+              audioDuration: init.audioDuration || fromStorage.audioDuration,
+              audioTranscriptKh: init.audioTranscriptKh || fromStorage.audioTranscriptKh,
+              audioTranscriptEn: init.audioTranscriptEn || fromStorage.audioTranscriptEn,
+            };
+          });
+          const initIds = new Set(INITIAL_PREGNANCY_RESOURCES.map((r) => r.id));
+          const custom = parsed.filter((r: any) => !initIds.has(r.id));
+          return [...merged, ...custom];
+        }
       }
     } catch {}
     return INITIAL_PREGNANCY_RESOURCES;
@@ -275,8 +283,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentWeek, setCurrentWeek] = useState<number>(() => user?.pregnancy_week || 9);
   const [activeTab, setActiveTabState] = useState<TabKey>('home');
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('signup');
   const [selectedResource, setSelectedResource] = useState<PregnancyResource | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<FocusTopic | null>(null);
   const [isContentEntryOpen, setIsContentEntryOpen] = useState(false);
@@ -478,8 +484,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     supabase.auth?.getSession?.()?.then(({ data }: any) => {
       if (!data?.session) {
-        setUser((prev) => (prev ? null : prev));
-        // Guest user: load from localStorage for today
+        // No session yet (first visit, or anonymous sign-in unavailable): keep any local profile.: load from localStorage for today
         const todayStr = getCambodiaDateStr();
         try {
           const local = localStorage.getItem('mae_daily_usage_' + todayStr);
@@ -495,8 +500,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const authSub = supabase.auth?.onAuthStateChange?.((_event: any, session: any) => {
       if (session?.user) {
         refreshProfile(session.user.id, session.user.email);
-      } else {
-        setUser(null);
       }
     });
 
@@ -636,41 +639,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (error) console.warn('Profile save failed', error.message);
   };
 
-  // Authentication Flows (Supabase Auth, email + password)
-  const signup = async (name: string, email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
-    if (!name.trim()) return { success: false, error: t('សូមបញ្ចូលឈ្មោះរបស់អ្នក។', 'Please enter your name.') };
-    if (!email.includes('@')) return { success: false, error: t('សូមបញ្ចូលអ៊ីមែលឱ្យបានត្រឹមត្រូវ។', 'Please enter a valid email address.') };
-    if (pass.length < 6) return { success: false, error: t('ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច ៦ តួអក្សរ។', 'Password must be at least 6 characters.') };
+  // No accounts: start the app with an anonymous session and the pre-start wizard answers.
+  const startApp = async () => {
+    if (user) return;
 
-    const cleanEmail = email.trim().toLowerCase();
-    const { data, error } = await supabase.auth.signUp({ email: cleanEmail, password: pass });
-    if (error || !data.user) {
-      return { success: false, error: error?.message || t('មិនអាចបង្កើតគណនីបានទេ។', 'Could not create the account.') };
+    let userId = '';
+    try {
+      const { data, error } = await (supabase.auth as any).signInAnonymously();
+      if (error) console.warn('Anonymous sign-in failed', error.message);
+      userId = data?.user?.id || '';
+    } catch (err) {
+      console.warn('Anonymous sign-in failed', err);
     }
-    if (!data.session) {
-      return {
-        success: false,
-        error: 'Account created, but Supabase still wants email confirmation. Turn off "Confirm email" in Authentication.',
-      };
-    }
+    // Offline or anonymous sign-in turned off: keep a local-only id so the app still works.
+    if (!userId) userId = 'local_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
 
-    // Retrieve pre-login wizard answers from local memory if available
+    // No due date is asked: everyone starts at week 9 and can change it in Profile.
     const wizardAnswers = getSavedPreLoginAnswers();
-    const calculatedWeek = wizardAnswers?.calculatedWeek || 9;
+    const calculatedWeek = 9;
 
     const newUser: User = {
-      id: data.user.id,
-      name: name.trim(),
-      email: cleanEmail,
+      id: userId,
+      name: '',
+      email: '',
       language: language || 'km',
       pregnancy_week: calculatedWeek,
-      due_date: wizardAnswers?.dueDate,
-      due_date_method: wizardAnswers?.dueDateMethod,
-      lmp_date: wizardAnswers?.lmpDate,
       occupation: wizardAnswers?.occupation,
       is_first_pregnancy: wizardAnswers?.isFirstPregnancy,
       children_count: wizardAnswers?.childrenCount,
-      notification_preference: 'weekly',
+      notification_preference: 'none',
       is_premium: false,
       tier: 'free',
       created_at: new Date().toISOString(),
@@ -678,103 +675,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setUser(newUser);
     setCurrentWeek(calculatedWeek);
-    saveProfile(newUser);
+    if (!userId.startsWith('local_')) saveProfile(newUser);
     clearPreLoginAnswers();
 
     logEvent('account_created', newUser.id, calculatedWeek);
-    logEvent('signup_completed', newUser.id, calculatedWeek);
-    setIsAuthModalOpen(false);
     setIsOnboardingOpen(true);
-    showToast(t(`សូមស្វាគមន៍មកកាន់ «ម៉ែ», ${newUser.name} 🌸`, `Welcome to ម៉ែ, ${newUser.name} 🌸`));
-    return { success: true };
-  };
-
-  const login = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
-    if (!email.includes('@')) return { success: false, error: t('សូមបញ្ចូលអ៊ីមែលឱ្យបានត្រឹមត្រូវ។', 'Please enter a valid email address.') };
-    if (!pass) return { success: false, error: t('សូមបញ្ចូលពាក្យសម្ងាត់របស់អ្នក។', 'Please enter your password.') };
-
-    const cleanEmail = email.trim().toLowerCase();
-    const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: pass });
-    if (error || !data.user) {
-      return { success: false, error: t('អ៊ីមែល ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ។', 'Wrong email or password.') };
-    }
-
-    const { data: row } = await supabase.from('users').select('*').eq('id', data.user.id).maybeSingle();
-
-    // Query entitlements table (no row means not premium)
-    let isUserPremium = false;
-    try {
-      const { data: entRow, error: entError } = await supabase
-        .from('entitlements')
-        .select('is_premium')
-        .eq('user_id', data.user.id)
-        .maybeSingle();
-
-      if (!entError && entRow) {
-        isUserPremium = Boolean(entRow.is_premium);
-      } else if (row?.is_premium) {
-        isUserPremium = true;
-      }
-    } catch {
-      isUserPremium = Boolean(row?.is_premium);
-    }
-
-    const returningUser: User = {
-      id: data.user.id,
-      name: row?.name || cleanEmail.split('@')[0],
-      email: cleanEmail,
-      language: row?.language || language || 'km',
-      pregnancy_week: row?.pregnancy_week || 9,
-      due_date: row?.due_date || undefined,
-      due_date_method: row?.due_date_method || undefined,
-      lmp_date: row?.lmp_date || undefined,
-      occupation: row?.occupation || undefined,
-      is_first_pregnancy: row?.is_first_pregnancy !== undefined ? row.is_first_pregnancy : true,
-      children_count: row?.children_count || undefined,
-      notification_preference: row?.notification_preference || 'weekly',
-      is_premium: isUserPremium,
-      tier: isUserPremium ? 'premium' : 'free',
-      premium_until: row?.premium_until || undefined,
-      created_at: row?.created_at || new Date().toISOString(),
-    };
-
-    // Load today's opened summaries from daily_usage
-    const todayStr = getCambodiaDateStr();
-    try {
-      const { data: usageRow } = await supabase
-        .from('daily_usage')
-        .select('summary_ids')
-        .eq('user_id', data.user.id)
-        .eq('date', todayStr)
-        .maybeSingle();
-
-      if (usageRow && Array.isArray(usageRow.summary_ids)) {
-        setTodayOpenedSummaries(usageRow.summary_ids);
-        try {
-          localStorage.setItem('mae_daily_usage_' + todayStr, JSON.stringify(usageRow.summary_ids));
-        } catch {}
-      }
-    } catch (err) {
-      console.warn('Could not load daily usage on login', err);
-    }
-
-    setUser(returningUser);
-    if (returningUser.pregnancy_week) {
-      setCurrentWeek(returningUser.pregnancy_week);
-    }
-    logEvent('login_completed', returningUser.id, returningUser.pregnancy_week);
-    setIsAuthModalOpen(false);
-    showToast(t(`សូមស្វាគមន៍ការត្រឡប់មកវិញ 🌸`, `Welcome back, Mama 🌸`));
-    return { success: true };
-  };
-
-  const logout = () => {
-    logEvent('logout_completed', user?.id);
-    supabase.auth.signOut();
-    setUser(null);
-    setCurrentWeek(9);
-    setActiveTabState('home');
-    showToast(t('អ្នកបានចាកចេញដោយសុវត្ថិភាព។ ថែរក្សាសុខភាពណា 🌸', 'You have logged out peacefully. Take care 🌸'));
   };
 
   const updateUserPreferences = (updates: Partial<User>) => {
@@ -801,18 +706,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const completeOnboarding = (data: {
     name: string;
     pregnancy_week: number;
-    due_date?: string;
     language: UserLanguage;
-    notification_preference: NotificationPreference;
   }) => {
     if (!user) return;
     const updatedUser: User = {
       ...user,
       name: data.name || user.name,
       pregnancy_week: data.pregnancy_week,
-      due_date: data.due_date,
       language: data.language,
-      notification_preference: data.notification_preference,
     };
     setUser(updatedUser);
     saveProfile(updatedUser);
@@ -821,7 +722,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsOnboardingOpen(false);
     logEvent('onboarding_completed', user.id, data.pregnancy_week, {
       language: data.language,
-      reminders: data.notification_preference,
     });
     showToast(t(`សូមស្វាគមន៍ដំណើរក្លាយជាម្តាយដ៏កក់ក្តៅ 🌸`, `Welcome to your pregnancy journey, Mama 🌸`));
   };
@@ -977,10 +877,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // 2. Delete rows in user_read_resources
       await supabase.from('user_read_resources').delete().eq('user_id', user.id);
 
-      // 3. Delete plan items and telegram links/codes
+      // 3. Delete plan items
       await supabase.from('plan_items').delete().eq('user_id', user.id);
-      await supabase.from('telegram_links').delete().eq('user_id', user.id);
-      await supabase.from('link_codes').delete().eq('user_id', user.id);
 
       // 4. Delete user row in users table
       const { error: userError } = await supabase.from('users').delete().eq('id', user.id);
@@ -1022,10 +920,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const checkCanUsePlan = (): FeatureAccessResult => {
     return evaluateCanUsePlan(isUserPremium);
-  };
-
-  const checkCanUseReminders = (): FeatureAccessResult => {
-    return evaluateCanUseReminders(isUserPremium);
   };
 
   const trackOpenedSummary = async (resource: ResourceSummaryItem) => {
@@ -1074,9 +968,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     t,
     user,
     isAuthenticated: !!user,
-    login,
-    signup,
-    logout,
+    startApp,
     updateUserPreferences,
     isOnboardingOpen,
     setIsOnboardingOpen,
@@ -1108,10 +1000,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsContentEntryOpen,
     editingResource,
     setEditingResource,
-    isAuthModalOpen,
-    setIsAuthModalOpen,
-    authModalMode,
-    setAuthModalMode,
     analyticsConsent,
     setAnalyticsConsent,
     analyticsEvents,
@@ -1129,7 +1017,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isPremium: isUserPremium,
     canOpenSummary: checkCanOpenSummary,
     canUsePlan: checkCanUsePlan,
-    canUseReminders: checkCanUseReminders,
     trackOpenedSummary,
     todayOpenedSummaries,
     dailySummariesLimit,

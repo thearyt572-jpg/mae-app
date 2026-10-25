@@ -6,8 +6,8 @@
  * "នៅក្បែរអ្នក និងកំដរអ្នក អំឡុងពេលពពោះលើកដំបូង។"
  * Emotional voice hook: "ម៉ែមានរឿងចង់ប្រាប់"
  *
- * Live version: real sign-up only (no demo account). Users are told up front
- * that their pregnancy details are saved and that cookies are used.
+ * No accounts: "Start" runs the short wizard, then the app opens straight away.
+ * Users are told up front that their pregnancy details are saved and that cookies are used.
  *
  * Voice: "ម៉ែ" (Mom) is the app's NAME only. The app speaks as a friendly
  * companion, never as the user's mother. Address the user as "you" (អ្នក),
@@ -22,7 +22,7 @@ import { MONTHLY_MOM_MESSAGES } from '../data/monthlyMessages';
 import { PreLoginWizard, PreLoginAnswers } from '../components/PreLoginWizard';
 
 export const LandingScreen: React.FC = () => {
-  const { setIsAuthModalOpen, setAuthModalMode, t } = useApp();
+  const { startApp, t } = useApp();
   const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   const handleStart = () => {
@@ -31,14 +31,7 @@ export const LandingScreen: React.FC = () => {
 
   const handleWizardComplete = (_answers: PreLoginAnswers) => {
     setIsWizardOpen(false);
-    setAuthModalMode('signup');
-    setIsAuthModalOpen(true);
-  };
-
-  // NOTE: 'login' must match the mode name your AuthModal expects.
-  const handleLogin = () => {
-    setAuthModalMode('login');
-    setIsAuthModalOpen(true);
+    startApp();
   };
 
   return (
@@ -83,13 +76,6 @@ export const LandingScreen: React.FC = () => {
             <ArrowRight className="w-4 h-4" />
           </button>
 
-          <button
-            type="button"
-            onClick={handleLogin}
-            className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-white hover:bg-[#F0F4E8] text-[#233125] border border-[#E5EADF] text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-2xs"
-          >
-            <span>{t('ខ្ញុំមានគណនីរួចហើយ', 'I already have an account')}</span>
-          </button>
         </div>
 
         {/* Data & cookie notice */}
@@ -204,7 +190,7 @@ export const LandingScreen: React.FC = () => {
         </div>
       </section>
 
-      {/* Pre-Login Onboarding Wizard & Due Date Calculator */}
+      {/* Start Wizard */}
       <PreLoginWizard
         isOpen={isWizardOpen}
         onClose={() => setIsWizardOpen(false)}

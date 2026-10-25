@@ -5,18 +5,15 @@
  * Implements Section 13:
  * Minimal profile containing strictly:
  * - Name
- * - Pregnancy week OR due date
+ * - Pregnancy week
  * - Language (Khmer / English)
- * - Notification preference (Daily / Weekly / None)
- * - Logout
+ * - Privacy consent & Delete My Data
  */
 
 import React, { useState } from 'react';
-import { User, Bell, Globe, LogOut, Calendar, Heart, Trash2, ShieldCheck, AlertTriangle, X, Briefcase, Baby, Sparkles } from 'lucide-react';
+import { User, Globe, Heart, Trash2, ShieldCheck, AlertTriangle, X, Briefcase, Baby, Sparkles } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { UserLanguage, NotificationPreference, DueDateMethod } from '../types';
-import { TelegramLink } from '../components/TelegramLink';
-import { DueDateModal } from '../components/DueDate';
+import { UserLanguage } from '../types';
 
 export const ProfileScreen: React.FC = () => {
   const {
@@ -24,12 +21,10 @@ export const ProfileScreen: React.FC = () => {
     isAuthenticated,
     isPremium,
     setIsUpgradeModalOpen,
-    logout,
+    startApp,
     updateUserPreferences,
     currentWeek,
     setCurrentWeek,
-    setIsAuthModalOpen,
-    setAuthModalMode,
     analyticsConsent,
     setAnalyticsConsent,
     deleteMyData,
@@ -38,7 +33,6 @@ export const ProfileScreen: React.FC = () => {
 
   const [editName, setEditName] = useState(user?.name || '');
   const [isEditing, setIsEditing] = useState(false);
-  const [isDueDateModalOpen, setIsDueDateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -49,23 +43,20 @@ export const ProfileScreen: React.FC = () => {
           🌸
         </div>
         <h2 className="text-xl font-serif font-bold text-[#233125]">
-          {t('ចូលប្រើដើម្បីតាមដានការវិវឌ្ឍន៍នៃការមានផ្ទៃពោះ', 'Sign in to Personalize Your Journey')}
+          {t('ចាប់ផ្ដើមដើម្បីតាមដានការវិវឌ្ឍន៍នៃការមានផ្ទៃពោះ', 'Start to Personalize Your Journey')}
         </h2>
         <p className="text-xs sm:text-sm text-[#5F6E60]">
           {t(
-            'បង្កើតគណនីដើម្បីកត់ត្រាសប្ដាហ៍ពពោះ និងទទួលសារកក់ក្តៅពីម៉ែ។',
-            'Save your pregnancy week and receive gentle words from mom.'
+            'ចាប់ផ្ដើមដើម្បីកត់ត្រាសប្ដាហ៍ពពោះ និងទទួលសារកក់ក្តៅពីម៉ែ។ មិនចាំបាច់មានគណនីទេ។',
+            'Save your pregnancy week and receive gentle words from mom. No account needed.'
           )}
         </p>
         <button
           type="button"
-          onClick={() => {
-            setAuthModalMode('login');
-            setIsAuthModalOpen(true);
-          }}
+          onClick={() => startApp()}
           className="px-6 py-3 rounded-full bg-[#88A04D] hover:bg-[#5C7034] text-white text-sm font-semibold shadow-xs transition-all"
         >
-          {t('ចូលប្រើ ឬចុះឈ្មោះ', 'Sign In or Register')}
+          {t('ចាប់ផ្ដើម 🌸', 'Start 🌸')}
         </button>
       </div>
     );
@@ -73,10 +64,6 @@ export const ProfileScreen: React.FC = () => {
 
   const handleLanguageChange = (lang: UserLanguage) => {
     updateUserPreferences({ language: lang });
-  };
-
-  const handleReminderChange = (pref: NotificationPreference) => {
-    updateUserPreferences({ notification_preference: pref });
   };
 
   const handleSaveName = () => {
@@ -94,21 +81,6 @@ export const ProfileScreen: React.FC = () => {
     } finally {
       setIsDeleting(false);
     }
-  };
-
-  const handleSaveDueDate = (data: {
-    dueDate: string;
-    method: DueDateMethod;
-    calculatedWeek: number;
-    lmpDate?: string;
-  }) => {
-    updateUserPreferences({
-      due_date: data.dueDate,
-      due_date_method: data.method,
-      pregnancy_week: data.calculatedWeek,
-      lmp_date: data.lmpDate,
-    });
-    setCurrentWeek(data.calculatedWeek);
   };
 
   return (
@@ -169,20 +141,12 @@ export const ProfileScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* 2. Pregnancy Week / Due Date */}
+        {/* 2. Pregnancy Week */}
         <div className="pt-4 border-t border-[#E5EADF] space-y-2.5">
           <div className="flex items-center justify-between">
             <label className="block text-xs font-bold text-[#233125]">
-              {t('សប្ដាហ៍នៃការពពោះ និងថ្ងៃសម្រាល', 'Pregnancy Week & Due Date')}
+              {t('សប្ដាហ៍នៃការពពោះ', 'Pregnancy Week')}
             </label>
-            <button
-              type="button"
-              onClick={() => setIsDueDateModalOpen(true)}
-              className="text-xs font-semibold text-[#88A04D] hover:text-[#5C7034] underline underline-offset-2 inline-flex items-center gap-1"
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>{t('កែប្រែថ្ងៃសម្រាល (Calculator)', 'Change due date')}</span>
-            </button>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -201,18 +165,6 @@ export const ProfileScreen: React.FC = () => {
                 </option>
               ))}
             </select>
-
-            {user.due_date && (
-              <span className="text-xs text-[#5F6E60] bg-[#FAF9F5] px-3 py-2 rounded-xl border border-[#E5EADF]">
-                {t('ថ្ងៃសម្រាល៖', 'Due date:')}{' '}
-                <strong className="text-[#233125]">{user.due_date}</strong>
-                {user.due_date_method && (
-                  <span className="text-[10px] text-[#88A04D] ml-1">
-                    ({user.due_date_method})
-                  </span>
-                )}
-              </span>
-            )}
           </div>
         </div>
 
@@ -273,8 +225,8 @@ export const ProfileScreen: React.FC = () => {
           {isPremium ? (
             <p className="text-[#233125]">
               {t(
-                'អ្នកមានសិទ្ធិប្រើប្រាស់ពេញលេញលើមុខងារ «គម្រោងរបស់ខ្ញុំ» (My Plan), សាររំលឹកតាម Telegram និងការនាំចេញប្រតិទិន។',
-                'You have full access to My Plan, Telegram morning alerts, and Calendar export.'
+                'អ្នកមានសិទ្ធិប្រើប្រាស់ពេញលេញលើមុខងារ «គម្រោងរបស់ខ្ញុំ» (My Plan)។',
+                'You have full access to My Plan.'
               )}
             </p>
           ) : (
@@ -294,7 +246,7 @@ export const ProfileScreen: React.FC = () => {
               onClick={() => setIsUpgradeModalOpen(true)}
               className="min-h-[40px] px-4 py-2 rounded-full bg-[#88A04D] hover:bg-[#5C7034] text-white text-xs font-semibold shadow-2xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <span>{t('ដំឡើងគម្រោង / ភ្ជាប់ Telegram 🌸', 'Purchase / Upgrade Plan 🌸')}</span>
+              <span>{t('ដំឡើងគម្រោង 🌸', 'Purchase / Upgrade Plan 🌸')}</span>
             </button>
           </div>
         )}
@@ -336,65 +288,7 @@ export const ProfileScreen: React.FC = () => {
         </div>
       </section>
 
-      {/* 4. Notification Preference (Validation Options: Daily / Weekly / None) */}
-      <section className="rounded-3xl bg-white border border-[#E5EADF] p-5 sm:p-6 shadow-xs space-y-3">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#5C7034]">
-          <Bell className="w-4 h-4 text-[#88A04D]" />
-          <span>{t('ការទទួលការរំលឹកពីម៉ែ', 'Reminder Frequency')}</span>
-        </div>
-
-        <div className="space-y-2">
-          {[
-            {
-              id: 'weekly' as const,
-              labelKh: 'រៀងរាល់សប្ដាហ៍ (Weekly)',
-              descKh: 'ទទួលសាររំលឹកមួយដងក្នុងមួយសប្ដាហ៍',
-            },
-            {
-              id: 'daily' as const,
-              labelKh: 'រៀងរាល់ថ្ងៃ (Daily)',
-              descKh: 'ទទួលការរំលឹកញ៉ាំទឹក សម្រាក និងថែរក្សាខ្លួនប្រចាំថ្ងៃ',
-            },
-            {
-              id: 'none' as const,
-              labelKh: 'មិនទទួល (None)',
-              descKh: 'ស្វែងរកព័ត៌មានដែលអ្នកចង់ដឹងនៅទីនេះដោយមិនទទួលសាររំលឹកពីម៉ែ',
-            },
-          ].map((item) => (
-            <label
-              key={item.id}
-              className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
-                user.notification_preference === item.id
-                  ? 'bg-[#FAF9F5] border-[#88A04D] shadow-2xs'
-                  : 'bg-white border-[#E5EADF] hover:bg-[#FAF9F5]/50'
-              }`}
-            >
-              <input
-                type="radio"
-                name="notification_preference"
-                checked={user.notification_preference === item.id}
-                onChange={() => handleReminderChange(item.id)}
-                className="mt-1 accent-[#88A04D]"
-              />
-              <div>
-                <div className="text-xs sm:text-sm font-bold text-[#233125]">
-                  {item.labelKh}
-                </div>
-                <div className="text-[11px] text-[#5F6E60] mt-0.5">
-                  {item.descKh}
-                </div>
-              </div>
-            </label>
-          ))}
-        </div>
-      </section>
-
-      {/* 5. Telegram Daily Reminders Integration */}
-      <section>
-        <TelegramLink />
-      </section>
-
-      {/* 6. Privacy & Research Data Consent */}
+      {/* 4. Privacy & Research Data Consent */}
       <section className="rounded-3xl bg-white border border-[#E5EADF] p-5 sm:p-6 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#5C7034]">
@@ -421,8 +315,8 @@ export const ProfileScreen: React.FC = () => {
 
         <p className="text-xs text-[#5F6E60] leading-relaxed">
           {t(
-            'ទិន្នន័យស្រាវជ្រាវត្រូវបានប្រើសម្រាប់តែកែលម្អកម្មវិធីប៉ុណ្ណោះ។ ការភ្ជាប់ Telegram គឺស្រេចចិត្ត ដោយប្រព័ន្ធរក្សាទុកតែ Telegram Chat ID (គ្មានការរក្សាទុកលេខទូរស័ព្ទឡើយ) ហើយអ្នកអាចផ្តាច់បានគ្រប់ពេល។',
-            'Research logs are used solely to improve the app. Telegram reminders are optional: only your chat ID is stored (no phone numbers), and you can switch it off anytime.'
+            'ទិន្នន័យស្រាវជ្រាវត្រូវបានប្រើសម្រាប់តែកែលម្អកម្មវិធីប៉ុណ្ណោះ។',
+            'Research logs are used solely to improve the app.'
           )}
         </p>
 
@@ -443,17 +337,8 @@ export const ProfileScreen: React.FC = () => {
         </div>
       </section>
 
-      {/* 6. Account Actions */}
+      {/* 6. Data Actions */}
       <section className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={logout}
-          className="min-h-[44px] w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full border border-[#E5EADF] text-[#5F6E60] hover:text-[#233125] hover:bg-[#FAF9F5] text-xs sm:text-sm font-medium transition-colors"
-        >
-          <LogOut className="w-4 h-4" />
-          <span>{t('ចាកចេញពីគណនី (Log Out)', 'Log Out')}</span>
-        </button>
-
         <button
           type="button"
           onClick={() => setIsDeleteModalOpen(true)}
@@ -501,8 +386,8 @@ export const ProfileScreen: React.FC = () => {
 
             <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-[11px] text-red-800 leading-relaxed">
               {t(
-                'ចំណាំ៖ គណនីចូលប្រព័ន្ធ (Auth login) នឹងត្រូវចាកចេញភ្លាមៗ។ ដើម្បីលុបគណនីចូលប្រព័ន្ធចេញជាស្ថាពរពី Supabase សូមទាក់ទងមកក្រុមការងារ [CONTACT]។',
-                'Note: You will be logged out immediately. To permanently remove your auth login record from Supabase, please reach out to [CONTACT].'
+                'ចំណាំ៖ កម្មវិធីនឹងចាប់ផ្ដើមឡើងវិញពីដំបូងនៅលើឧបករណ៍នេះ។ ប្រសិនបើមានសំណួរ សូមទាក់ទងមកក្រុមការងារ [CONTACT]។',
+                'Note: The app will start over from the beginning on this device. Questions? Please reach out to [CONTACT].'
               )}
             </div>
 
@@ -531,14 +416,6 @@ export const ProfileScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Due Date Calculator Modal */}
-      <DueDateModal
-        isOpen={isDueDateModalOpen}
-        onClose={() => setIsDueDateModalOpen(false)}
-        onSave={handleSaveDueDate}
-        initialDueDate={user.due_date}
-        initialMethod={user.due_date_method || 'doctor'}
-      />
     </div>
   );
 };

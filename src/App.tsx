@@ -14,7 +14,6 @@ import { PlanScreen } from './screens/PlanScreen';
 import { ResourcesScreen } from './screens/ResourcesScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { LandingScreen } from './screens/LandingScreen';
-import { AuthModal } from './components/AuthModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { ResourceModal } from './components/ResourceModal';
 import { TopicModal } from './components/TopicModal';
@@ -43,7 +42,7 @@ const AppContent: React.FC = () => {
 
   // Screen selection
   const renderCurrentScreen = () => {
-    // If not authenticated and activeTab is 'home', show LandingScreen with easy access to Demo Mama & Sign In
+    // If not authenticated and activeTab is 'home', show LandingScreen (first visit, before the app starts)
     if (!isAuthenticated && activeTab === 'home') {
       return <LandingScreen />;
     }
@@ -69,7 +68,7 @@ const AppContent: React.FC = () => {
       {/* Top Navigation Bar */}
       <Navbar />
 
-      {/* Floating Toast Notification for Feedback & Simulating Reminders */}
+      {/* Floating Toast Notification for Feedback */}
       {toastMessage && (
         <aside
           aria-label="Notification alert"
@@ -119,7 +118,6 @@ const AppContent: React.FC = () => {
       <ConsentBanner />
 
       {/* Global Interactive Modals */}
-      <AuthModal />
       <OnboardingModal />
       {selectedTopic && (
         <TopicModal

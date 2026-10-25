@@ -5,16 +5,15 @@
  * Free vs Premium Behavior:
  * - Free / Non-premium: Shows pre-written items as a clean, read-only preview,
  *   then provides a direct action to open the Upgrade screen.
- * - Premium: Full interactive checklist customization, reminder time selection,
- *   duration selection (1 day vs 7 days), Telegram morning reminder switch, and saving to database.
+ * - Premium: Full interactive checklist customization, duration selection
+ *   (1 day vs 7 days), and saving to database. No reminders.
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Check, Calendar, Plus, Sparkles, LogIn, Clock, Send, Lock } from 'lucide-react';
+import { X, Check, Plus, Sparkles, Clock, Lock } from 'lucide-react';
 import { PlanSuggestion } from '../types';
 import { useApp } from '../context/AppContext';
 import { usePlan, getCambodiaTodayStr, addDaysToCambodiaDate } from '../context/PlanContext';
-import { supabase } from '../lib/supabase';
 
 interface AddToPlanSheetProps {
   isOpen: boolean;
@@ -34,12 +33,8 @@ export const AddToPlanSheet: React.FC<AddToPlanSheetProps> = ({
   suggestions,
 }) => {
   const {
-    user,
-    isAuthenticated,
     isPremium,
     setIsUpgradeModalOpen,
-    setIsAuthModalOpen,
-    setAuthModalMode,
     logEvent,
     currentWeek,
     t,
@@ -50,24 +45,6 @@ export const AddToPlanSheet: React.FC<AddToPlanSheetProps> = ({
   const [keptSuggestions, setKeptSuggestions] = useState<PlanSuggestion[]>([]);
   // Duration: 'day' (1 day) or 'week' (7 days)
   const [duration, setDuration] = useState<'day' | 'week'>('day');
-  const [reminderTime, setReminderTime] = useState<string>('08:00');
-  const [isTelegramLinked, setIsTelegramLinked] = useState<boolean>(false);
-  const [remindOnTelegram, setRemindOnTelegram] = useState<boolean>(true);
-
-  useEffect(() => {
-    if (isOpen && user?.id) {
-      supabase
-        .from('telegram_links')
-        .select('chat_id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          setIsTelegramLinked(!!data);
-          if (data) setRemindOnTelegram(true);
-        });
-    }
-  }, [isOpen, user?.id]);
-
   useEffect(() => {
     if (isOpen) {
       setKeptSuggestions(suggestions);
@@ -109,7 +86,6 @@ export const AddToPlanSheet: React.FC<AddToPlanSheetProps> = ({
       source_id: sourceId,
       start_date: todayStr,
       end_date: endDateStr,
-      reminder_time: reminderTime,
       done: false,
     }));
 
@@ -123,9 +99,9 @@ export const AddToPlanSheet: React.FC<AddToPlanSheetProps> = ({
     onClose();
   };
 
-  const handleNonPremiumReminderClick = () => {
+  const handleNonPremiumDurationClick = () => {
     onClose();
-    setIsUpgradeModalOpen(true, 'reminders');
+    setIsUpgradeModalOpen(true, 'add_to_plan');
   };
 
   return (
@@ -201,34 +177,6 @@ export const AddToPlanSheet: React.FC<AddToPlanSheetProps> = ({
           </div>
         )}
 
-        {/* Guest Warning if not logged in */}
-        {!isAuthenticated && isPremium && (
-          <div className="p-4 rounded-2xl bg-[#F0F4E8] border border-[#88A04D]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="space-y-0.5 text-[#233125]">
-              <p className="font-bold">
-                {t('សូមចូលគណនីដើម្បីរក្សាទុកគម្រោង', 'Please log in to save your plan')}
-              </p>
-              <p className="text-[#5F6E60]">
-                {t(
-                  'ការចូលគណនីជួយការពារគម្រោងរបស់អ្នកកុំឱ្យបាត់បង់ពេលប្តូរទូរស័ព្ទ។',
-                  'Logging in ensures your plan stays saved across sessions.'
-                )}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setAuthModalMode('login');
-                setIsAuthModalOpen(true);
-              }}
-              className="min-h-[40px] px-4 py-2 rounded-full bg-[#88A04D] hover:bg-[#5C7034] text-white font-semibold flex items-center justify-center gap-1.5 shrink-0 shadow-2xs"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>{t('ចូលគណនី', 'Log in')}</span>
-            </button>
-          </div>
-        )}
-
         {/* Pre-written suggestions (Read-only preview for free users, editable for premium) */}
         <div className="space-y-2.5">
           <div className="flex items-center justify-between">
@@ -283,7 +231,7 @@ export const AddToPlanSheet: React.FC<AddToPlanSheetProps> = ({
         <div className="space-y-2 pt-2 border-t border-[#E5EADF]">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-[#233125] block">
-              {t('ជ្រើសរើសរយៈពេលរំលឹក', 'Reminder Duration')}
+              {t('ជ្រើសរើសរយៈពេល', 'How long')}
             </label>
             {!isPremium && (
               <span className="text-[11px] text-[#5F6E60] flex items-center gap-1">
@@ -296,76 +244,31 @@ export const AddToPlanSheet: React.FC<AddToPlanSheetProps> = ({
           <div className="grid grid-cols-2 gap-2.5">
             <button
               type="button"
-              onClick={isPremium ? () => setDuration('day') : handleNonPremiumReminderClick}
+              onClick={isPremium ? () => setDuration('day') : handleNonPremiumDurationClick}
               className={`min-h-[44px] px-3.5 py-2.5 rounded-2xl border text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
                 duration === 'day'
                   ? 'bg-[#88A04D] text-white border-[#88A04D] shadow-xs'
                   : 'bg-white text-[#233125] border-[#E5EADF] hover:bg-[#FAF9F5]'
               }`}
             >
-              <Calendar className="w-4 h-4" />
+              <Clock className="w-4 h-4" />
               <span>{t('ត្រឹមតែមួយថ្ងៃ', 'Just one day')}</span>
             </button>
 
             <button
               type="button"
-              onClick={isPremium ? () => setDuration('week') : handleNonPremiumReminderClick}
+              onClick={isPremium ? () => setDuration('week') : handleNonPremiumDurationClick}
               className={`min-h-[44px] px-3.5 py-2.5 rounded-2xl border text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
                 duration === 'week'
                   ? 'bg-[#88A04D] text-white border-[#88A04D] shadow-xs'
                   : 'bg-white text-[#233125] border-[#E5EADF] hover:bg-[#FAF9F5]'
               }`}
             >
-              <Calendar className="w-4 h-4" />
+              <Clock className="w-4 h-4" />
               <span>{t('រាល់ថ្ងៃក្នុងមួយសប្ដាហ៍', 'Every day for a week')}</span>
             </button>
           </div>
         </div>
-
-        {/* Telegram Reminder Switch */}
-        {isTelegramLinked ? (
-          <div className="pt-2 border-t border-[#E5EADF] flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#EBF1E4]/70 border border-[#88A04D]/35">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-[#88A04D] text-white flex items-center justify-center shrink-0 shadow-2xs">
-                <Send className="w-4 h-4 ml-0.5" />
-              </div>
-              <div>
-                <span className="text-xs font-bold text-[#233125] block">
-                  {t('រំលឹកខ្ញុំតាម Telegram ផងដែរ', 'Also remind me on Telegram')}
-                </span>
-                <span className="text-[11px] text-[#5F6E60]">
-                  {t('ផ្ញើនៅម៉ោង ៨:០០ ព្រឹកជារៀងរាល់ថ្ងៃ', 'Delivered at 8:00 AM daily')}
-                </span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              role="switch"
-              aria-checked={remindOnTelegram}
-              onClick={isPremium ? () => setRemindOnTelegram(!remindOnTelegram) : handleNonPremiumReminderClick}
-              className={`w-12 h-7 rounded-full transition-colors relative focus:outline-none ${
-                remindOnTelegram ? 'bg-[#88A04D]' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`w-5 h-5 rounded-full bg-white block transition-transform shadow-2xs ${
-                  remindOnTelegram ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-        ) : (
-          <div className="pt-2 border-t border-[#E5EADF] text-[11px] text-[#5F6E60] flex items-center gap-1.5">
-            <Send className="w-3.5 h-3.5 text-[#88A04D] shrink-0" />
-            <span>
-              {t(
-                'អ្នកអាចភ្ជាប់ Telegram ក្នុងទំព័រ «គម្រោង» ឬ «គណនី» ដើម្បីទទួលសាររំលឹកនៅម៉ោង ៨ ព្រឹក។',
-                'You can link Telegram anytime in My Plan or Profile to get 8:00 AM morning reminders.'
-              )}
-            </span>
-          </div>
-        )}
 
         {/* Action Buttons: Confirm & Cancel */}
         <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#E5EADF]">
@@ -402,7 +305,7 @@ export const AddToPlanSheet: React.FC<AddToPlanSheetProps> = ({
               className="min-h-[44px] px-6 py-2.5 rounded-full bg-[#88A04D] hover:bg-[#5C7034] active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-xs transition-all flex items-center gap-2 cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
-              <span>{t('ដំឡើងគម្រោង / ភ្ជាប់ Telegram 🌸', 'Purchase / Upgrade Plan 🌸')}</span>
+              <span>{t('ដំឡើងគម្រោង 🌸', 'Purchase / Upgrade Plan 🌸')}</span>
             </button>
           )}
         </div>

@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { Database, Activity, LogIn, Globe } from 'lucide-react';
+import { Database, Activity, Globe } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export const Navbar: React.FC = () => {
@@ -17,8 +17,6 @@ export const Navbar: React.FC = () => {
     isAuthenticated,
     activeTab,
     setActiveTab,
-    setIsAuthModalOpen,
-    setAuthModalMode,
     setIsContentEntryOpen,
     setEditingResource,
     setIsAnalyticsOpen,
@@ -162,7 +160,7 @@ export const Navbar: React.FC = () => {
             <Activity className="w-4 h-4 text-[#88A04D]" />
           </button>
 
-          {/* Auth State Button */}
+          {/* Profile Button */}
           {isAuthenticated ? (
             <button
               type="button"
@@ -177,19 +175,7 @@ export const Navbar: React.FC = () => {
                 {user?.name}
               </span>
             </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setAuthModalMode('login');
-                setIsAuthModalOpen(true);
-              }}
-              className="inline-flex items-center justify-center gap-1 min-h-[44px] px-3.5 sm:px-4 py-1.5 rounded-full bg-[#88A04D] hover:bg-[#5C7034] text-white text-xs font-semibold shadow-2xs transition-colors"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>{t('ចូលប្រើ', 'Log In')}</span>
-            </button>
-          )}
+          ) : null}
         </div>
       </div>
     </header>
